@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scriptoponos — Коллекция скриптов</title>
-    <!-- Prism.js для подсветки синтаксиса -->
+    <title>Scriptoponos — Script Collection</title>
+    <!-- Prism.js for syntax highlighting -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <style>
         * { box-sizing: border-box; margin: 0; }
@@ -15,7 +15,7 @@
             padding: 30px 20px;
             color: #e6edf3;
         }
-        .container { max-width: 900px; margin: 0 auto; }
+        .container { max-width: 950px; margin: 0 auto; }
         
         h1 {
             font-size: 2.5rem;
@@ -33,26 +33,6 @@
             font-size: 1.1rem;
             border-left: 3px solid #58a6ff;
             padding-left: 15px;
-        }
-        
-        .stats {
-            background: #21262d;
-            border-radius: 12px;
-            padding: 15px 20px;
-            margin-bottom: 25px;
-            display: flex;
-            gap: 25px;
-            border: 1px solid #30363d;
-            font-size: 0.95rem;
-        }
-        
-        .stat-item { display: flex; align-items: center; gap: 8px; color: #8b949e; }
-        .stat-number {
-            background: #30363d;
-            padding: 3px 10px;
-            border-radius: 20px;
-            color: #e6edf3;
-            font-weight: 600;
         }
         
         .search-box {
@@ -75,7 +55,7 @@
         
         .script-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 15px;
         }
         
@@ -87,7 +67,7 @@
             transition: all 0.2s ease;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
         }
         .script-card:hover {
             border-color: #58a6ff;
@@ -96,11 +76,27 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.4);
         }
         
+        .script-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
         .script-name {
             font-size: 1.2rem;
             font-weight: 600;
-            word-break: break-all;
+            word-break: break-word;
             color: #e6edf3;
+        }
+        
+        .script-date {
+            font-size: 0.75rem;
+            color: #6e7681;
+            white-space: nowrap;
+            background: #21262d;
+            padding: 4px 8px;
+            border-radius: 20px;
         }
         
         .script-actions {
@@ -138,7 +134,14 @@
         }
         .btn-secondary:hover { background: #30363d; }
         
-        /* Модальное окно */
+        .btn-warning {
+            background: #9a6700;
+            color: white;
+            border: 1px solid #d29922;
+        }
+        .btn-warning:hover { background: #b88700; }
+        
+        /* Modal */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -204,23 +207,16 @@
             padding: 15px 25px;
             border-top: 1px solid #30363d;
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
             gap: 12px;
         }
+        .modal-footer-left { display: flex; gap: 8px; }
+        .modal-footer-right { display: flex; gap: 8px; }
         
         .loading-spinner {
             text-align: center;
             padding: 40px;
             color: #8b949e;
-        }
-        
-        .footer {
-            margin-top: 45px;
-            text-align: center;
-            color: #6e7681;
-            font-size: 0.85rem;
-            border-top: 1px solid #21262d;
-            padding-top: 25px;
         }
         
         .empty-message {
@@ -229,28 +225,62 @@
             color: #8b949e;
             font-size: 1.2rem;
         }
+        
+        .toast {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #238636;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 40px;
+            font-weight: 500;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            z-index: 2000;
+        }
+        .toast.show { opacity: 1; }
+        .toast.error { background: #f85149; }
+        
+        .replace-area {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #30363d;
+        }
+        .replace-area textarea {
+            width: 100%;
+            min-height: 120px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            color: #e6edf3;
+            padding: 12px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+        .replace-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>scriptoponos</h1>
-        <div class="subtitle">Коллекция полезных скриптов</div>
+        <div class="subtitle">Collection of useful scripts</div>
         
-        <div class="stats">
-            <div class="stat-item">Всего скриптов: <span class="stat-number" id="totalCount">0</span></div>
-            <div class="stat-item">Найдено: <span class="stat-number" id="filteredCount">0</span></div>
-        </div>
-        
-        <input type="text" class="search-box" placeholder="Поиск по названию скрипта..." id="searchInput">
+        <input type="text" class="search-box" placeholder="Search scripts..." id="searchInput">
         
         <div class="script-grid" id="scriptContainer"></div>
-        
-        <div class="footer">
-            <a href="https://github.com/cola460/scriptoponos" target="_blank" style="color: #58a6ff; text-decoration: none;">Звездочка на GitHub</a> • Добавляйте новые .js файлы в репозиторий
-        </div>
     </div>
     
-    <!-- Модальное окно для просмотра кода -->
+    <!-- Modal for viewing/editing code -->
     <div class="modal-overlay" id="modal">
         <div class="modal">
             <div class="modal-header">
@@ -258,21 +288,37 @@
                 <button class="modal-close" id="modalClose">&times;</button>
             </div>
             <div class="modal-body" id="modalBody">
-                <div class="loading-spinner">Загрузка кода...</div>
+                <div class="loading-spinner">Loading code...</div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" id="modalCopyBtn">Копировать</button>
-                <a href="#" class="btn btn-primary" id="modalDownloadBtn" download>Скачать</a>
+                <div class="modal-footer-left">
+                    <button class="btn btn-warning" id="modalReplaceBtn">Replace with Clipboard</button>
+                </div>
+                <div class="modal-footer-right">
+                    <button class="btn btn-secondary" id="modalCopyBtn">Copy</button>
+                    <a href="#" class="btn btn-primary" id="modalDownloadBtn" download>Download</a>
+                </div>
             </div>
         </div>
     </div>
+    
+    <div class="toast" id="toast"></div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
     
     <script>
         (function() {
-            // Список всех JS-файлов
+            // ============================================================
+            // CONFIGURATION - PASTE YOUR GITHUB TOKEN HERE
+            // Get token: https://github.com/settings/tokens (need 'repo' scope)
+            // ============================================================
+            const GITHUB_TOKEN = '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'; // Paste your token here
+            const REPO_OWNER = 'cola460';
+            const REPO_NAME = 'scriptoponos';
+            const BRANCH = 'main';
+            
+            // List of all JS files
             const scriptFiles = [
                 "Buttons.js",
                 "Click.js",
@@ -288,65 +334,193 @@
             
             const container = document.getElementById('scriptContainer');
             const searchInput = document.getElementById('searchInput');
-            const totalSpan = document.getElementById('totalCount');
-            const filteredSpan = document.getElementById('filteredCount');
+            const toast = document.getElementById('toast');
             
-            // Модальное окно
+            // Modal elements
             const modal = document.getElementById('modal');
             const modalTitle = document.getElementById('modalTitle');
             const modalBody = document.getElementById('modalBody');
             const modalClose = document.getElementById('modalClose');
             const modalCopyBtn = document.getElementById('modalCopyBtn');
             const modalDownloadBtn = document.getElementById('modalDownloadBtn');
+            const modalReplaceBtn = document.getElementById('modalReplaceBtn');
             
-            let currentScript = { name: '', rawUrl: '', url: '' };
+            let currentScript = { name: '', filename: '', rawUrl: '', url: '', sha: '' };
+            let currentCode = '';
             
-            const allScripts = scriptFiles.map(filename => ({
-                name: filename,
-                url: filename,
-                rawUrl: `https://raw.githubusercontent.com/cola460/scriptoponos/main/${encodeURIComponent(filename)}`
-            }));
+            // Show toast message
+            function showToast(message, isError = false) {
+                toast.textContent = message;
+                toast.classList.add('show');
+                if (isError) toast.classList.add('error');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    toast.classList.remove('error');
+                }, 3000);
+            }
             
-            function renderScripts(filterText = '') {
+            // Format date
+            function formatDate(dateString) {
+                if (!dateString) return 'N/A';
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+                
+                if (diffMins < 1) return 'Just now';
+                if (diffMins < 60) return `${diffMins}m ago`;
+                if (diffHours < 24) return `${diffHours}h ago`;
+                if (diffDays < 7) return `${diffDays}d ago`;
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+            
+            // Fetch commit info for a file
+            async function fetchFileInfo(filename) {
+                try {
+                    const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits?path=${encodeURIComponent(filename)}&per_page=1`);
+                    if (!response.ok) return null;
+                    const commits = await response.json();
+                    if (commits.length > 0) {
+                        return {
+                            date: commits[0].commit.committer.date,
+                            sha: commits[0].sha
+                        };
+                    }
+                } catch (e) {
+                    console.warn('Failed to fetch commit info:', e);
+                }
+                return null;
+            }
+            
+            // Fetch SHA of file (needed for update)
+            async function fetchFileSha(filename) {
+                try {
+                    const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${encodeURIComponent(filename)}`);
+                    if (!response.ok) return null;
+                    const data = await response.json();
+                    return data.sha;
+                } catch (e) {
+                    return null;
+                }
+            }
+            
+            // Update file on GitHub
+            async function updateFile(filename, content, sha) {
+                if (!GITHUB_TOKEN) {
+                    showToast('GitHub token not configured', true);
+                    return false;
+                }
+                
+                try {
+                    const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${encodeURIComponent(filename)}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${GITHUB_TOKEN}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: `Update ${filename} via Scriptoponos`,
+                            content: btoa(unescape(encodeURIComponent(content))), // Base64 encode properly
+                            sha: sha,
+                            branch: BRANCH
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.message || 'Failed to update');
+                    }
+                    
+                    return true;
+                } catch (e) {
+                    console.error('Update failed:', e);
+                    showToast(e.message, true);
+                    return false;
+                }
+            }
+            
+            // Load scripts with dates
+            async function loadScriptsWithDates() {
+                const scriptsWithDates = await Promise.all(scriptFiles.map(async filename => {
+                    const info = await fetchFileInfo(filename);
+                    return {
+                        name: filename.replace(/\.js$/, ''),
+                        filename: filename,
+                        url: filename,
+                        rawUrl: `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${encodeURIComponent(filename)}`,
+                        lastUpdated: info ? formatDate(info.date) : 'N/A',
+                        commitSha: info ? info.sha : null
+                    };
+                }));
+                return scriptsWithDates;
+            }
+            
+            // Render scripts
+            async function renderScripts(filterText = '') {
+                const allScripts = await loadScriptsWithDates();
                 const filtered = allScripts.filter(s => 
                     s.name.toLowerCase().includes(filterText.toLowerCase())
                 );
                 
-                totalSpan.textContent = allScripts.length;
-                filteredSpan.textContent = filtered.length;
-                
                 if (filtered.length === 0) {
-                    container.innerHTML = `<div class="empty-message">Ничего не найдено<br><span style="font-size:0.9rem;">Попробуйте изменить запрос</span></div>`;
+                    container.innerHTML = `<div class="empty-message">Nothing found<br><span style="font-size:0.9rem;">Try a different search</span></div>`;
                     return;
                 }
                 
                 container.innerHTML = filtered.map(script => `
                     <div class="script-card">
-                        <div class="script-name">${script.name}</div>
+                        <div class="script-header">
+                            <span class="script-name">${script.name}</span>
+                            <span class="script-date" title="Last updated">${script.lastUpdated}</span>
+                        </div>
                         <div class="script-actions">
-                            <a href="${script.url}" download class="btn btn-primary">Скачать</a>
-                            <button class="btn btn-secondary" onclick="viewScript('${script.name}', '${script.rawUrl}', '${script.url}')">Смотреть</button>
+                            <a href="${script.url}" download class="btn btn-primary">Download</a>
+                            <button class="btn btn-secondary" onclick="viewScript('${script.name}', '${script.rawUrl}', '${script.url}', '${script.filename}')">View</button>
                         </div>
                     </div>
                 `).join('');
+                
+                // Store scripts globally for view function
+                window._allScripts = allScripts;
             }
             
-            window.viewScript = async function(name, rawUrl, url) {
-                currentScript = { name, rawUrl, url };
-                modalTitle.textContent = name;
-                modalBody.innerHTML = '<div class="loading-spinner">Загрузка кода...</div>';
+            // View script
+            window.viewScript = async function(name, rawUrl, url, filename) {
+                const scriptData = window._allScripts.find(s => s.filename === filename);
+                currentScript = { 
+                    name, 
+                    filename, 
+                    rawUrl, 
+                    url,
+                    sha: scriptData ? null : null // Will fetch fresh
+                };
+                
+                modalTitle.textContent = filename;
+                modalBody.innerHTML = '<div class="loading-spinner">Loading code...</div>';
                 modal.classList.add('active');
                 modalDownloadBtn.href = url;
                 
                 try {
                     const response = await fetch(rawUrl);
-                    if (!response.ok) throw new Error('Не удалось загрузить');
-                    const code = await response.text();
+                    if (!response.ok) throw new Error('Failed to load');
+                    currentCode = await response.text();
                     
-                    modalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(code)}</code></pre>`;
+                    // Fetch fresh SHA
+                    const sha = await fetchFileSha(filename);
+                    currentScript.sha = sha;
+                    
+                    modalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(currentCode)}</code></pre>`;
                     Prism.highlightAllUnder(modalBody);
+                    
+                    // Update replace button state
+                    modalReplaceBtn.disabled = !GITHUB_TOKEN;
+                    if (!GITHUB_TOKEN) {
+                        modalReplaceBtn.title = 'GitHub token required';
+                    }
                 } catch (error) {
-                    modalBody.innerHTML = `<div class="empty-message" style="padding:20px;">Ошибка загрузки: ${error.message}</div>`;
+                    modalBody.innerHTML = `<div class="empty-message" style="padding:20px;">Error loading: ${error.message}</div>`;
                 }
             };
             
@@ -356,18 +530,69 @@
                 return div.innerHTML;
             }
             
-            // Копирование кода
+            // Replace with clipboard
+            modalReplaceBtn.addEventListener('click', async () => {
+                if (!GITHUB_TOKEN) {
+                    showToast('Please configure GitHub token in code', true);
+                    return;
+                }
+                
+                if (!currentScript.sha) {
+                    showToast('Cannot get file info. Try reopening.', true);
+                    return;
+                }
+                
+                try {
+                    const clipboardText = await navigator.clipboard.readText();
+                    if (!clipboardText.trim()) {
+                        showToast('Clipboard is empty', true);
+                        return;
+                    }
+                    
+                    modalReplaceBtn.textContent = 'Saving...';
+                    modalReplaceBtn.disabled = true;
+                    
+                    const success = await updateFile(currentScript.filename, clipboardText, currentScript.sha);
+                    
+                    if (success) {
+                        showToast(`✓ ${currentScript.filename} updated!`);
+                        // Update displayed code
+                        currentCode = clipboardText;
+                        modalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(currentCode)}</code></pre>`;
+                        Prism.highlightAllUnder(modalBody);
+                        
+                        // Refresh SHA
+                        const newSha = await fetchFileSha(currentScript.filename);
+                        currentScript.sha = newSha;
+                        
+                        // Refresh main page after a delay
+                        setTimeout(() => renderScripts(searchInput.value), 2000);
+                    }
+                } catch (e) {
+                    if (e.message.includes('clipboard')) {
+                        showToast('Clipboard access denied', true);
+                    } else {
+                        showToast(e.message, true);
+                    }
+                } finally {
+                    modalReplaceBtn.textContent = 'Replace with Clipboard';
+                    modalReplaceBtn.disabled = false;
+                }
+            });
+            
+            // Copy code
             modalCopyBtn.addEventListener('click', async () => {
                 const codeBlock = modalBody.querySelector('code');
                 if (codeBlock) {
                     const text = codeBlock.textContent;
                     await navigator.clipboard.writeText(text);
-                    modalCopyBtn.textContent = 'Скопировано!';
-                    setTimeout(() => modalCopyBtn.textContent = 'Копировать', 1500);
+                    modalCopyBtn.textContent = 'Copied!';
+                    setTimeout(() => modalCopyBtn.textContent = 'Copy', 1500);
+                    showToast('Copied to clipboard');
                 }
             });
             
-            // Закрытие модалки
+            // Close modal
             modalClose.addEventListener('click', () => modal.classList.remove('active'));
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) modal.classList.remove('active');
@@ -380,7 +605,13 @@
             
             searchInput.addEventListener('input', (e) => renderScripts(e.target.value));
             
+            // Initial render
             renderScripts();
+            
+            // Show token warning if not set
+            if (!GITHUB_TOKEN) {
+                console.warn('GitHub token not set. Replace function will not work.');
+            }
         })();
     </script>
 </body>
