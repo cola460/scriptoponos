@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scriptoponos — Script Collection</title>
-    <!-- Prism.js for syntax highlighting -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <style>
         * { box-sizing: border-box; margin: 0; }
@@ -141,6 +140,11 @@
         }
         .btn-warning:hover { background: #b88700; }
         
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
         /* Modal */
         .modal-overlay {
             position: fixed;
@@ -244,30 +248,6 @@
         }
         .toast.show { opacity: 1; }
         .toast.error { background: #f85149; }
-        
-        .replace-area {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #30363d;
-        }
-        .replace-area textarea {
-            width: 100%;
-            min-height: 120px;
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            color: #e6edf3;
-            padding: 12px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 13px;
-            resize: vertical;
-            margin-bottom: 10px;
-        }
-        .replace-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
     </style>
 </head>
 <body>
@@ -312,8 +292,9 @@
             // ============================================================
             // CONFIGURATION - PASTE YOUR GITHUB TOKEN HERE
             // Get token: https://github.com/settings/tokens (need 'repo' scope)
+            // Token should start with 'ghp_'
             // ============================================================
-            const GITHUB_TOKEN = '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'; // Paste your token here
+            const GITHUB_TOKEN = ''; // <-- PASTE YOUR TOKEN HERE
             const REPO_OWNER = 'cola460';
             const REPO_NAME = 'scriptoponos';
             const BRANCH = 'main';
@@ -406,7 +387,7 @@
                 }
             }
             
-            // Update file on GitHub
+            // Update file on GitHub - FIXED VERSION
             async function updateFile(filename, content, sha) {
                 if (!GITHUB_TOKEN) {
                     showToast('GitHub token not configured', true);
@@ -414,15 +395,19 @@
                 }
                 
                 try {
+                    // Proper Base64 encoding for Unicode
+                    const base64Content = btoa(unescape(encodeURIComponent(content)));
+                    
                     const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${encodeURIComponent(filename)}`, {
                         method: 'PUT',
                         headers: {
                             'Authorization': `Bearer ${GITHUB_TOKEN}`,
-                            'Content-Type': 'application/json',
+                            'Accept': 'application/vnd.github.v3+json',
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
                             message: `Update ${filename} via Scriptoponos`,
-                            content: btoa(unescape(encodeURIComponent(content))), // Base64 encode properly
+                            content: base64Content,
                             sha: sha,
                             branch: BRANCH
                         })
@@ -430,6 +415,7 @@
                     
                     if (!response.ok) {
                         const error = await response.json();
+                        console.error('GitHub API error:', error);
                         throw new Error(error.message || 'Failed to update');
                     }
                     
@@ -482,20 +468,13 @@
                     </div>
                 `).join('');
                 
-                // Store scripts globally for view function
                 window._allScripts = allScripts;
             }
             
             // View script
             window.viewScript = async function(name, rawUrl, url, filename) {
                 const scriptData = window._allScripts.find(s => s.filename === filename);
-                currentScript = { 
-                    name, 
-                    filename, 
-                    rawUrl, 
-                    url,
-                    sha: scriptData ? null : null // Will fetch fresh
-                };
+                currentScript = { name, filename, rawUrl, url, sha: null };
                 
                 modalTitle.textContent = filename;
                 modalBody.innerHTML = '<div class="loading-spinner">Loading code...</div>';
@@ -507,17 +486,17 @@
                     if (!response.ok) throw new Error('Failed to load');
                     currentCode = await response.text();
                     
-                    // Fetch fresh SHA
                     const sha = await fetchFileSha(filename);
                     currentScript.sha = sha;
                     
                     modalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(currentCode)}</code></pre>`;
                     Prism.highlightAllUnder(modalBody);
                     
-                    // Update replace button state
                     modalReplaceBtn.disabled = !GITHUB_TOKEN;
                     if (!GITHUB_TOKEN) {
                         modalReplaceBtn.title = 'GitHub token required';
+                    } else {
+                        modalReplaceBtn.title = '';
                     }
                 } catch (error) {
                     modalBody.innerHTML = `<div class="empty-message" style="padding:20px;">Error loading: ${error.message}</div>`;
@@ -555,17 +534,14 @@
                     const success = await updateFile(currentScript.filename, clipboardText, currentScript.sha);
                     
                     if (success) {
-                        showToast(`✓ ${currentScript.filename} updated!`);
-                        // Update displayed code
+                        showToast(`${currentScript.filename} updated!`);
                         currentCode = clipboardText;
                         modalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(currentCode)}</code></pre>`;
                         Prism.highlightAllUnder(modalBody);
                         
-                        // Refresh SHA
                         const newSha = await fetchFileSha(currentScript.filename);
                         currentScript.sha = newSha;
                         
-                        // Refresh main page after a delay
                         setTimeout(() => renderScripts(searchInput.value), 2000);
                     }
                 } catch (e) {
@@ -605,10 +581,8 @@
             
             searchInput.addEventListener('input', (e) => renderScripts(e.target.value));
             
-            // Initial render
             renderScripts();
             
-            // Show token warning if not set
             if (!GITHUB_TOKEN) {
                 console.warn('GitHub token not set. Replace function will not work.');
             }
