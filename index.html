@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scriptoponos — Коллекция скриптов</title>
+    <!-- Prism.js для подсветки синтаксиса -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <style>
         * { box-sizing: border-box; margin: 0; }
         body {
@@ -97,12 +99,9 @@
         .script-name {
             font-size: 1.2rem;
             font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
             word-break: break-all;
+            color: #e6edf3;
         }
-        .script-name .js-icon { color: #f7df1e; font-size: 1.3rem; }
         
         .script-actions {
             display: flex;
@@ -120,7 +119,6 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
             transition: all 0.15s;
             border: none;
             flex: 1;
@@ -140,32 +138,81 @@
         }
         .btn-secondary:hover { background: #30363d; }
         
-        .btn-copy {
-            background: #1f2a3f;
-            color: #58a6ff;
-            border: 1px solid #30363d;
-            padding: 10px 12px;
-            flex: 0.5;
-        }
-        .btn-copy:hover { background: #2d3a4f; }
-        
-        .toast {
+        /* Модальное окно */
+        .modal-overlay {
             position: fixed;
-            bottom: 25px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #238636;
-            color: white;
-            padding: 12px 25px;
-            border-radius: 40px;
-            font-weight: 500;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
             z-index: 1000;
+            padding: 20px;
         }
-        .toast.show { opacity: 1; }
+        .modal-overlay.active { display: flex; }
+        
+        .modal {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            animation: modalIn 0.2s ease;
+        }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 1px solid #30363d;
+        }
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #e6edf3;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: #8b949e;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 6px;
+            transition: all 0.15s;
+        }
+        .modal-close:hover { background: #21262d; color: #f85149; }
+        
+        .modal-body {
+            padding: 25px;
+            overflow-y: auto;
+        }
+        .modal-body pre {
+            margin: 0;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        
+        .modal-footer {
+            padding: 15px 25px;
+            border-top: 1px solid #30363d;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+            color: #8b949e;
+        }
         
         .footer {
             margin-top: 45px;
@@ -186,29 +233,46 @@
 </head>
 <body>
     <div class="container">
-        <h1>📁 scriptoponos</h1>
+        <h1>scriptoponos</h1>
         <div class="subtitle">Коллекция полезных скриптов</div>
         
         <div class="stats">
-            <div class="stat-item">📄 Всего скриптов: <span class="stat-number" id="totalCount">0</span></div>
-            <div class="stat-item">🔍 Найдено: <span class="stat-number" id="filteredCount">0</span></div>
+            <div class="stat-item">Всего скриптов: <span class="stat-number" id="totalCount">0</span></div>
+            <div class="stat-item">Найдено: <span class="stat-number" id="filteredCount">0</span></div>
         </div>
         
-        <input type="text" class="search-box" placeholder="🔎 Поиск по названию скрипта..." id="searchInput">
+        <input type="text" class="search-box" placeholder="Поиск по названию скрипта..." id="searchInput">
         
         <div class="script-grid" id="scriptContainer"></div>
         
         <div class="footer">
-            <a href="https://github.com/cola460/scriptoponos" target="_blank" style="color: #58a6ff; text-decoration: none;">⭐ Звёздочка на GitHub</a> • Добавляйте новые .js файлы в репозиторий
+            <a href="https://github.com/cola460/scriptoponos" target="_blank" style="color: #58a6ff; text-decoration: none;">Звездочка на GitHub</a> • Добавляйте новые .js файлы в репозиторий
         </div>
     </div>
     
-    <div class="toast" id="toast">📋 Ссылка скопирована!</div>
+    <!-- Модальное окно для просмотра кода -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title" id="modalTitle">script.js</span>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="loading-spinner">Загрузка кода...</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="modalCopyBtn">Копировать</button>
+                <a href="#" class="btn btn-primary" id="modalDownloadBtn" download>Скачать</a>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
     
     <script>
         (function() {
-            // ====== СПИСОК ВСЕХ ТВОИХ JS-ФАЙЛОВ ======
-            // Просто добавь сюда имя файла, если появится новый
+            // Список всех JS-файлов
             const scriptFiles = [
                 "Buttons.js",
                 "Click.js",
@@ -226,11 +290,20 @@
             const searchInput = document.getElementById('searchInput');
             const totalSpan = document.getElementById('totalCount');
             const filteredSpan = document.getElementById('filteredCount');
-            const toast = document.getElementById('toast');
             
-            let allScripts = scriptFiles.map(filename => ({
+            // Модальное окно
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            const modalClose = document.getElementById('modalClose');
+            const modalCopyBtn = document.getElementById('modalCopyBtn');
+            const modalDownloadBtn = document.getElementById('modalDownloadBtn');
+            
+            let currentScript = { name: '', rawUrl: '', url: '' };
+            
+            const allScripts = scriptFiles.map(filename => ({
                 name: filename,
-                url: filename, // относительный путь работает
+                url: filename,
                 rawUrl: `https://raw.githubusercontent.com/cola460/scriptoponos/main/${encodeURIComponent(filename)}`
             }));
             
@@ -243,46 +316,71 @@
                 filteredSpan.textContent = filtered.length;
                 
                 if (filtered.length === 0) {
-                    container.innerHTML = `<div class="empty-message">😕 Ничего не найдено<br><span style="font-size:0.9rem;">Попробуйте изменить запрос</span></div>`;
+                    container.innerHTML = `<div class="empty-message">Ничего не найдено<br><span style="font-size:0.9rem;">Попробуйте изменить запрос</span></div>`;
                     return;
                 }
                 
                 container.innerHTML = filtered.map(script => `
                     <div class="script-card">
-                        <div class="script-name">
-                            <span class="js-icon">📄</span>
-                            ${script.name}
-                        </div>
+                        <div class="script-name">${script.name}</div>
                         <div class="script-actions">
-                            <a href="${script.url}" download class="btn btn-primary">⬇ Скачать</a>
-                            <button class="btn btn-secondary" onclick="viewRaw('${script.rawUrl}')">👁 Смотреть</button>
-                            <button class="btn btn-copy" onclick="copyRawUrl('${script.rawUrl}', '${script.name}')">📋</button>
+                            <a href="${script.url}" download class="btn btn-primary">Скачать</a>
+                            <button class="btn btn-secondary" onclick="viewScript('${script.name}', '${script.rawUrl}', '${script.url}')">Смотреть</button>
                         </div>
                     </div>
                 `).join('');
             }
             
-            window.viewRaw = function(rawUrl) {
-                window.open(rawUrl, '_blank');
+            window.viewScript = async function(name, rawUrl, url) {
+                currentScript = { name, rawUrl, url };
+                modalTitle.textContent = name;
+                modalBody.innerHTML = '<div class="loading-spinner">Загрузка кода...</div>';
+                modal.classList.add('active');
+                modalDownloadBtn.href = url;
+                
+                try {
+                    const response = await fetch(rawUrl);
+                    if (!response.ok) throw new Error('Не удалось загрузить');
+                    const code = await response.text();
+                    
+                    modalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(code)}</code></pre>`;
+                    Prism.highlightAllUnder(modalBody);
+                } catch (error) {
+                    modalBody.innerHTML = `<div class="empty-message" style="padding:20px;">Ошибка загрузки: ${error.message}</div>`;
+                }
             };
             
-            window.copyRawUrl = function(rawUrl, name) {
-                navigator.clipboard.writeText(rawUrl).then(() => {
-                    toast.classList.add('show');
-                    setTimeout(() => toast.classList.remove('show'), 2000);
-                }).catch(() => {
-                    alert('Не удалось скопировать ссылку');
-                });
-            };
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
             
-            searchInput.addEventListener('input', (e) => {
-                renderScripts(e.target.value);
+            // Копирование кода
+            modalCopyBtn.addEventListener('click', async () => {
+                const codeBlock = modalBody.querySelector('code');
+                if (codeBlock) {
+                    const text = codeBlock.textContent;
+                    await navigator.clipboard.writeText(text);
+                    modalCopyBtn.textContent = 'Скопировано!';
+                    setTimeout(() => modalCopyBtn.textContent = 'Копировать', 1500);
+                }
             });
             
-            // Первый рендер
-            renderScripts();
+            // Закрытие модалки
+            modalClose.addEventListener('click', () => modal.classList.remove('active'));
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.classList.remove('active');
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && modal.classList.contains('active')) {
+                    modal.classList.remove('active');
+                }
+            });
             
-            // Если в репозитории появятся новые файлы — просто добавь их в массив scriptFiles выше
+            searchInput.addEventListener('input', (e) => renderScripts(e.target.value));
+            
+            renderScripts();
         })();
     </script>
 </body>
