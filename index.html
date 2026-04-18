@@ -248,7 +248,7 @@
             </div>
             <div class="modal-footer">
                 <div class="modal-footer-left">
-                    <button class="btn btn-warning" id="modalReplaceBtn">Replace with Clipboard</button>
+                    <button class="btn btn-warning" id="modalReplaceBtn">Edit in Opengist</button>
                 </div>
                 <div class="modal-footer-right">
                     <button class="btn btn-secondary" id="modalCopyBtn">Copy</button>
@@ -265,10 +265,9 @@
     
     <script>
         (function() {
-            // Используем твой ngrok URL
             const API_BASE = 'https://squeamish-resonate-expel.ngrok-free.dev';
-            // ID сниппета (создай в Opengist сниппет с именем scripts-db)
-            const SNIPPET_ID = 'scripts-db';
+            const USERNAME = 'cola';
+            const SNIPPET_ID = '666a44dc160f444988c4484f49abbe70';
             
             const container = document.getElementById('scriptContainer');
             const searchInput = document.getElementById('searchInput');
@@ -313,22 +312,20 @@
             
             async function fetchScripts() {
                 try {
-                    // Получаем raw содержимое сниппета
-                    const response = await fetch(`${API_BASE}/api/v1/snippets/${SNIPPET_ID}/raw`);
+                    const response = await fetch(`${API_BASE}/${USERNAME}/${SNIPPET_ID}/raw`, {
+                        headers: {
+                            'ngrok-skip-browser-warning': 'true'
+                        }
+                    });
+                    
                     if (!response.ok) throw new Error('Failed to fetch');
                     const text = await response.text();
                     return JSON.parse(text || '[]');
                 } catch (e) {
                     console.error('Fetch error:', e);
-                    showToast('Failed to load scripts. Create "scripts-db" snippet in Opengist.', true);
+                    showToast('Failed to load scripts', true);
                     return [];
                 }
-            }
-            
-            async function saveScripts(scripts) {
-                // Для записи нужен токен. Если его нет - показываем инструкцию.
-                showToast('To save, edit the snippet directly in Opengist', true);
-                return false;
             }
             
             async function renderScripts(filterText = '') {
@@ -393,9 +390,8 @@
                 return div.innerHTML;
             }
             
-            modalReplaceBtn.addEventListener('click', async () => {
-                // Открываем Opengist для редактирования
-                window.open(`${API_BASE}/${SNIPPET_ID}/edit`, '_blank');
+            modalReplaceBtn.addEventListener('click', () => {
+                window.open(`${API_BASE}/${USERNAME}/${SNIPPET_ID}/edit`, '_blank');
                 showToast('Opened Opengist editor in new tab');
             });
             
@@ -412,6 +408,7 @@
             modalDownloadBtn.addEventListener('click', () => {
                 if (currentScript.filename) {
                     downloadScript(currentScript.filename);
+                    modal.classList.remove('active');
                 }
             });
             
