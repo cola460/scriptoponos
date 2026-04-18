@@ -252,7 +252,7 @@
                 </div>
                 <div class="modal-footer-right">
                     <button class="btn btn-secondary" id="modalCopyBtn">Copy</button>
-                    <a href="#" class="btn btn-primary" id="modalDownloadBtn" download>Download</a>
+                    <button class="btn btn-primary" id="modalDownloadBtn">Download</button>
                 </div>
             </div>
         </div>
@@ -266,11 +266,9 @@
     <script>
         (function() {
             // ============================================================
-            // CONFIGURATION - CHANGE THIS TO YOUR VM'S IP
+            // ЗАМЕНИ НА СВОЙ IP ВМки
             // ============================================================
             const API_URL = 'http://176.98.182.140:5000/scripts';
-            
-            // ============================================================
             
             const container = document.getElementById('scriptContainer');
             const searchInput = document.getElementById('searchInput');
@@ -359,14 +357,21 @@
                             <span class="script-date" title="Last updated">${formatDate(script.updatedAt)}</span>
                         </div>
                         <div class="script-actions">
-                            <button class="btn btn-primary" onclick="downloadScript('${script.name}', '${script.filename}')">Download</button>
-                            <button class="btn btn-secondary" onclick="viewScript('${script.name}', '${script.filename}')">View</button>
+                            <button class="btn btn-primary" data-download="${script.filename}">Download</button>
+                            <button class="btn btn-secondary" data-view="${script.filename}">View</button>
                         </div>
                     </div>
                 `).join('');
+                
+                document.querySelectorAll('[data-download]').forEach(btn => {
+                    btn.addEventListener('click', () => downloadScript(btn.dataset.download));
+                });
+                document.querySelectorAll('[data-view]').forEach(btn => {
+                    btn.addEventListener('click', () => viewScript(btn.dataset.view));
+                });
             }
             
-            window.downloadScript = function(name, filename) {
+            function downloadScript(filename) {
                 const script = allScripts.find(s => s.filename === filename);
                 if (!script) return;
                 
@@ -377,9 +382,9 @@
                 a.download = filename;
                 a.click();
                 URL.revokeObjectURL(url);
-            };
+            }
             
-            window.viewScript = function(name, filename) {
+            function viewScript(filename) {
                 const script = allScripts.find(s => s.filename === filename);
                 if (!script) return;
                 
@@ -388,7 +393,7 @@
                 modalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(script.code)}</code></pre>`;
                 Prism.highlightAllUnder(modalBody);
                 modal.classList.add('active');
-            };
+            }
             
             function escapeHtml(text) {
                 const div = document.createElement('div');
@@ -441,6 +446,12 @@
                     modalCopyBtn.textContent = 'Copied!';
                     setTimeout(() => modalCopyBtn.textContent = 'Copy', 1500);
                     showToast('Copied to clipboard');
+                }
+            });
+            
+            modalDownloadBtn.addEventListener('click', () => {
+                if (currentScript.filename) {
+                    downloadScript(currentScript.filename);
                 }
             });
             
