@@ -26,7 +26,7 @@
         }
         .subtitle {
             color: #8b949e;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             font-size: 1.1rem;
             border-left: 3px solid #58a6ff;
             padding-left: 15px;
@@ -35,16 +35,21 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             flex-wrap: wrap;
             gap: 10px;
+        }
+        .title-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
         .admin-badge {
             background: #9a6700;
             color: white;
-            padding: 8px 16px;
+            padding: 6px 14px;
             border-radius: 20px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 500;
         }
         .btn-add {
@@ -58,6 +63,43 @@
             font-size: 1rem;
         }
         .btn-add:hover { background: #2ea043; }
+        
+        .paid-info-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 12px 18px;
+            background: #21262d;
+            border-radius: 10px;
+            border: 1px solid #30363d;
+        }
+        .paid-label {
+            color: #8b949e;
+            font-weight: 500;
+        }
+        .paid-value {
+            color: #3fb950;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .paid-value.expired {
+            color: #f85149;
+        }
+        .btn-small {
+            background: #30363d;
+            color: #e6edf3;
+            border: 1px solid #484f58;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-left: auto;
+        }
+        .btn-small:hover {
+            background: #3d444d;
+        }
+        
         .search-box {
             width: 100%;
             padding: 14px 18px;
@@ -116,13 +158,6 @@
         }
         .script-updated {
             color: #6e7681;
-        }
-        .script-paid {
-            color: #3fb950;
-            font-weight: 500;
-        }
-        .script-paid.expired {
-            color: #f85149;
         }
         .script-actions {
             display: flex;
@@ -292,13 +327,19 @@
 <body>
     <div class="container">
         <div class="header-row">
-            <div style="display: flex; align-items: center; gap: 15px;">
+            <div class="title-section">
                 <h1>scriptoponos</h1>
                 <span class="admin-badge" id="adminBadge" style="display: none;">Admin Mode</span>
             </div>
             <button class="btn-add" id="addScriptBtn">+ Add Script</button>
         </div>
         <div class="subtitle">Shared Script Collection</div>
+        
+        <div class="paid-info-row">
+            <span class="paid-label">Paid until:</span>
+            <span class="paid-value" id="globalPaidUntil">Loading...</span>
+            <button class="btn-small" id="editPaidUntilBtn" style="display: none;">Edit</button>
+        </div>
         
         <input type="text" class="search-box" placeholder="Search scripts..." id="searchInput">
         
@@ -332,10 +373,6 @@
                     <label class="form-label">Name (without .js)</label>
                     <input type="text" class="form-input" id="scriptName" placeholder="Buttons">
                 </div>
-                <div class="form-group" id="paidUntilGroup" style="display: none;">
-                    <label class="form-label">Paid Until</label>
-                    <input type="date" class="form-input" id="scriptPaidUntil">
-                </div>
                 <div class="form-group">
                     <label class="form-label">Code</label>
                     <textarea class="form-input form-textarea" id="scriptCode" placeholder="// Your JavaScript code"></textarea>
@@ -345,6 +382,26 @@
                 <button class="btn btn-danger" id="deleteBtn" style="display:none;">Delete</button>
                 <button class="btn btn-secondary" data-close="editModal">Cancel</button>
                 <button class="btn btn-primary" id="saveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Paid Until Edit Modal -->
+    <div class="modal-overlay" id="paidModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Edit Paid Until</span>
+                <button class="modal-close" data-close="paidModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Paid Until Date</label>
+                    <input type="date" class="form-input" id="paidUntilInput">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-close="paidModal">Cancel</button>
+                <button class="btn btn-primary" id="savePaidBtn">Save</button>
             </div>
         </div>
     </div>
@@ -369,7 +426,7 @@
             
             if (isAdmin) {
                 document.getElementById('adminBadge').style.display = 'inline-block';
-                document.getElementById('paidUntilGroup').style.display = 'block';
+                document.getElementById('editPaidUntilBtn').style.display = 'block';
             }
             
             const container = document.getElementById('scriptContainer');
@@ -384,11 +441,14 @@
             const editModalTitle = document.getElementById('editModalTitle');
             const scriptName = document.getElementById('scriptName');
             const scriptCode = document.getElementById('scriptCode');
-            const scriptPaidUntil = document.getElementById('scriptPaidUntil');
             const deleteBtn = document.getElementById('deleteBtn');
+            
+            const paidModal = document.getElementById('paidModal');
+            const paidUntilInput = document.getElementById('paidUntilInput');
             
             let allScripts = [];
             let editingFilename = null;
+            let globalPaidUntil = null;
             
             function showToast(message, isError = false) {
                 toast.textContent = message;
@@ -416,14 +476,73 @@
                 return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             }
             
-            function isExpired(paidUntil) {
-                if (!paidUntil) return false;
-                return new Date(paidUntil) < new Date();
+            async function loadGlobalPaidUntil() {
+                try {
+                    const response = await fetch(API_URL, {
+                        headers: {
+                            'ngrok-skip-browser-warning': 'true',
+                            'Accept': 'application/json'
+                        }
+                    });
+                    const data = await response.json();
+                    const paidFile = data.files['paid.json'];
+                    if (paidFile && paidFile.content) {
+                        const paidData = JSON.parse(paidFile.content);
+                        globalPaidUntil = paidData.paidUntil;
+                    }
+                    updatePaidDisplay();
+                } catch (e) {
+                    console.error('Failed to load paid date:', e);
+                }
+            }
+            
+            function updatePaidDisplay() {
+                const displayEl = document.getElementById('globalPaidUntil');
+                if (globalPaidUntil) {
+                    const date = new Date(globalPaidUntil);
+                    displayEl.textContent = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                    if (date < new Date()) {
+                        displayEl.classList.add('expired');
+                    } else {
+                        displayEl.classList.remove('expired');
+                    }
+                } else {
+                    displayEl.textContent = 'Not set';
+                    displayEl.classList.remove('expired');
+                }
+            }
+            
+            async function saveGlobalPaidUntil(paidUntil) {
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'ngrok-skip-browser-warning': 'true'
+                        },
+                        body: JSON.stringify({
+                            files: {
+                                'paid.json': {
+                                    content: JSON.stringify({ paidUntil }, null, 2)
+                                }
+                            }
+                        })
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to save');
+                    globalPaidUntil = paidUntil;
+                    updatePaidDisplay();
+                    return true;
+                } catch (e) {
+                    console.error('Save error:', e);
+                    showToast('Failed to save paid date', true);
+                    return false;
+                }
             }
             
             async function fetchScripts() {
                 try {
-                    const response = await fetch(`${PROXY_URL}/gist/${GIST_ID}`, {
+                    const response = await fetch(API_URL, {
                         headers: {
                             'ngrok-skip-browser-warning': 'true',
                             'Accept': 'application/json'
@@ -480,20 +599,13 @@
                     return;
                 }
                 
-                container.innerHTML = filtered.map(script => {
-                    const expired = isExpired(script.paidUntil);
-                    const paidUntilDisplay = script.paidUntil 
-                        ? new Date(script.paidUntil).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-                        : 'Not set';
-                    
-                    return `
+                container.innerHTML = filtered.map(script => `
                     <div class="script-card">
                         <div class="script-header">
                             <span class="script-name">${script.name}</span>
                         </div>
                         <div class="script-info">
                             <span class="script-updated">Updated: ${formatDate(script.updatedAt)}</span>
-                            <span class="script-paid ${expired ? 'expired' : ''}">Paid until: ${paidUntilDisplay}</span>
                         </div>
                         <div class="script-actions">
                             <button class="btn btn-primary" data-download="${script.filename}">Download</button>
@@ -501,7 +613,7 @@
                             <button class="btn btn-secondary" data-edit="${script.filename}">Edit</button>
                         </div>
                     </div>
-                `}).join('');
+                `).join('');
                 
                 document.querySelectorAll('[data-download]').forEach(btn => {
                     btn.addEventListener('click', () => downloadScript(btn.dataset.download));
@@ -555,11 +667,6 @@
                 editModalTitle.textContent = `Edit ${filename}`;
                 scriptName.value = script.name;
                 scriptCode.value = script.code;
-                
-                if (isAdmin) {
-                    scriptPaidUntil.value = script.paidUntil || '';
-                }
-                
                 deleteBtn.style.display = 'block';
                 editModal.classList.add('active');
             }
@@ -570,14 +677,12 @@
                 return div.innerHTML;
             }
             
+            // Event Listeners
             document.getElementById('addScriptBtn').addEventListener('click', () => {
                 editingFilename = null;
                 editModalTitle.textContent = 'Add New Script';
                 scriptName.value = '';
                 scriptCode.value = '';
-                if (isAdmin) {
-                    scriptPaidUntil.value = '';
-                }
                 deleteBtn.style.display = 'none';
                 editModal.classList.add('active');
             });
@@ -594,25 +699,16 @@
                 const filename = name + '.js';
                 const now = new Date().toISOString();
                 
-                const scriptData = {
-                    name,
-                    filename,
-                    code,
-                    updatedAt: now
-                };
-                
-                if (isAdmin) {
-                    scriptData.paidUntil = scriptPaidUntil.value || null;
-                }
-                
                 if (editingFilename) {
                     const index = allScripts.findIndex(s => s.filename === editingFilename);
                     if (index !== -1) {
-                        // Сохраняем существующий paidUntil если не админ
-                        if (!isAdmin && allScripts[index].paidUntil) {
-                            scriptData.paidUntil = allScripts[index].paidUntil;
-                        }
-                        allScripts[index] = { ...allScripts[index], ...scriptData };
+                        allScripts[index] = { 
+                            ...allScripts[index], 
+                            name, 
+                            filename, 
+                            code, 
+                            updatedAt: now 
+                        };
                     }
                 } else {
                     if (allScripts.some(s => s.filename === filename)) {
@@ -620,7 +716,7 @@
                         return;
                     }
                     
-                    allScripts.push(scriptData);
+                    allScripts.push({ name, filename, code, updatedAt: now });
                 }
                 
                 const saved = await saveToGist(allScripts);
@@ -644,6 +740,27 @@
                 }
             });
             
+            document.getElementById('editPaidUntilBtn').addEventListener('click', () => {
+                if (globalPaidUntil) {
+                    paidUntilInput.value = globalPaidUntil;
+                }
+                paidModal.classList.add('active');
+            });
+            
+            document.getElementById('savePaidBtn').addEventListener('click', async () => {
+                const newDate = paidUntilInput.value;
+                if (!newDate) {
+                    showToast('Please select a date', true);
+                    return;
+                }
+                
+                const saved = await saveGlobalPaidUntil(newDate);
+                if (saved) {
+                    paidModal.classList.remove('active');
+                    showToast('Paid until date updated!');
+                }
+            });
+            
             document.querySelectorAll('[data-close]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     document.getElementById(btn.dataset.close).classList.remove('active');
@@ -664,6 +781,8 @@
             
             searchInput.addEventListener('input', (e) => renderScripts(e.target.value));
             
+            // Initial load
+            loadGlobalPaidUntil();
             renderScripts();
         })();
     </script>
