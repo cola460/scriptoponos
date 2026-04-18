@@ -26,11 +26,28 @@
         }
         .subtitle {
             color: #8b949e;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             font-size: 1.1rem;
             border-left: 3px solid #58a6ff;
             padding-left: 15px;
         }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .btn-add {
+            background: #238636;
+            color: white;
+            border: 1px solid #2ea043;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .btn-add:hover { background: #2ea043; }
         .search-box {
             width: 100%;
             padding: 14px 18px;
@@ -120,12 +137,16 @@
             border: 1px solid #30363d;
         }
         .btn-secondary:hover { background: #30363d; }
-        .btn-warning {
-            background: #9a6700;
+        .btn-danger {
+            background: #da3633;
             color: white;
-            border: 1px solid #d29922;
+            border: 1px solid #f85149;
         }
-        .btn-warning:hover { background: #b88700; }
+        .btn-danger:hover { background: #c92c2a; }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -142,7 +163,7 @@
             background: #161b22;
             border: 1px solid #30363d;
             border-radius: 16px;
-            max-width: 900px;
+            max-width: 700px;
             width: 100%;
             max-height: 85vh;
             display: flex;
@@ -150,6 +171,7 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
             animation: modalIn 0.2s ease;
         }
+        .modal-large { max-width: 900px; }
         @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         .modal-header {
             display: flex;
@@ -187,8 +209,36 @@
             padding: 15px 25px;
             border-top: 1px solid #30363d;
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
             gap: 12px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #e6edf3;
+            font-weight: 500;
+        }
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            background: #0d1117;
+            border: 1.5px solid #30363d;
+            border-radius: 8px;
+            color: #e6edf3;
+            font-size: 1rem;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        .form-textarea {
+            min-height: 300px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            resize: vertical;
         }
         .loading-spinner {
             text-align: center;
@@ -223,23 +273,53 @@
 </head>
 <body>
     <div class="container">
-        <h1>scriptoponos</h1>
+        <div class="header-row">
+            <h1>scriptoponos</h1>
+            <button class="btn-add" id="addScriptBtn">+ Add Script</button>
+        </div>
         <div class="subtitle">Shared Script Collection</div>
+        
         <input type="text" class="search-box" placeholder="Search scripts..." id="searchInput">
+        
         <div class="script-grid" id="scriptContainer"></div>
     </div>
     
-    <div class="modal-overlay" id="modal">
-        <div class="modal">
+    <!-- View Modal -->
+    <div class="modal-overlay" id="viewModal">
+        <div class="modal modal-large">
             <div class="modal-header">
-                <span class="modal-title" id="modalTitle"></span>
-                <button class="modal-close" id="modalClose">&times;</button>
+                <span class="modal-title" id="viewModalTitle"></span>
+                <button class="modal-close" data-close="viewModal">&times;</button>
             </div>
-            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-body" id="viewModalBody"></div>
             <div class="modal-footer">
-                <button class="btn btn-warning" id="modalEditBtn">Edit in Gist</button>
-                <button class="btn btn-secondary" id="modalCopyBtn">Copy</button>
-                <button class="btn btn-primary" id="modalDownloadBtn">Download</button>
+                <button class="btn btn-secondary" id="copyBtn">Copy</button>
+                <button class="btn btn-primary" id="downloadBtn">Download</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit/Add Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal modal-large">
+            <div class="modal-header">
+                <span class="modal-title" id="editModalTitle">Edit Script</span>
+                <button class="modal-close" data-close="editModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Name (without .js)</label>
+                    <input type="text" class="form-input" id="scriptName" placeholder="Buttons">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Code</label>
+                    <textarea class="form-input form-textarea" id="scriptCode" placeholder="// Your JavaScript code"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" id="deleteBtn" style="display:none;">Delete</button>
+                <button class="btn btn-secondary" data-close="editModal">Cancel</button>
+                <button class="btn btn-primary" id="saveBtn">Save</button>
             </div>
         </div>
     </div>
@@ -251,25 +331,29 @@
     
     <script>
         (function() {
-            // ЗАМЕНИ НА ID ТВОЕГО GIST
-            const GIST_ID = '3fc3850ddd0b8962d24b87912482e370';
+            // КОНФИГУРАЦИЯ
+            const GITHUB_TOKEN = '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'; // Вставь свой токен
+            const GIST_ID = '3fc3850ddd0b8962d24b87912482e370'; // Вставь ID gist
+            
+            const API_URL = `https://api.github.com/gists/${GIST_ID}`;
             const RAW_URL = `https://gist.githubusercontent.com/cola460/${GIST_ID}/raw/scripts.json`;
-            const GIST_URL = `https://gist.github.com/cola460/${GIST_ID}`;
             
             const container = document.getElementById('scriptContainer');
             const searchInput = document.getElementById('searchInput');
             const toast = document.getElementById('toast');
             
-            const modal = document.getElementById('modal');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalBody = document.getElementById('modalBody');
-            const modalClose = document.getElementById('modalClose');
-            const modalCopyBtn = document.getElementById('modalCopyBtn');
-            const modalDownloadBtn = document.getElementById('modalDownloadBtn');
-            const modalEditBtn = document.getElementById('modalEditBtn');
+            const viewModal = document.getElementById('viewModal');
+            const viewModalTitle = document.getElementById('viewModalTitle');
+            const viewModalBody = document.getElementById('viewModalBody');
             
-            let currentScript = { name: '', filename: '', code: '' };
+            const editModal = document.getElementById('editModal');
+            const editModalTitle = document.getElementById('editModalTitle');
+            const scriptName = document.getElementById('scriptName');
+            const scriptCode = document.getElementById('scriptCode');
+            const deleteBtn = document.getElementById('deleteBtn');
+            
             let allScripts = [];
+            let editingFilename = null;
             
             function showToast(message, isError = false) {
                 toast.textContent = message;
@@ -299,13 +383,38 @@
             
             async function fetchScripts() {
                 try {
-                    const response = await fetch(RAW_URL);
+                    const response = await fetch(RAW_URL + '?t=' + Date.now());
                     if (!response.ok) throw new Error('Failed to fetch');
                     return await response.json();
                 } catch (e) {
                     console.error('Fetch error:', e);
-                    showToast('Failed to load scripts', true);
                     return [];
+                }
+            }
+            
+            async function saveToGist(scripts) {
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bearer ${GITHUB_TOKEN}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            files: {
+                                'scripts.json': {
+                                    content: JSON.stringify(scripts, null, 2)
+                                }
+                            }
+                        })
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to save');
+                    return true;
+                } catch (e) {
+                    console.error('Save error:', e);
+                    showToast('Failed to save changes', true);
+                    return false;
                 }
             }
             
@@ -316,7 +425,7 @@
                 );
                 
                 if (filtered.length === 0) {
-                    container.innerHTML = `<div class="empty-message">Nothing found<br><span style="font-size:0.9rem;">Add scripts in Gist</span></div>`;
+                    container.innerHTML = `<div class="empty-message">No scripts found<br><span style="font-size:0.9rem;">Click "Add Script" to create one</span></div>`;
                     return;
                 }
                 
@@ -329,6 +438,7 @@
                         <div class="script-actions">
                             <button class="btn btn-primary" data-download="${script.filename}">Download</button>
                             <button class="btn btn-secondary" data-view="${script.filename}">View</button>
+                            <button class="btn btn-secondary" data-edit="${script.filename}">Edit</button>
                         </div>
                     </div>
                 `).join('');
@@ -338,6 +448,9 @@
                 });
                 document.querySelectorAll('[data-view]').forEach(btn => {
                     btn.addEventListener('click', () => viewScript(btn.dataset.view));
+                });
+                document.querySelectorAll('[data-edit]').forEach(btn => {
+                    btn.addEventListener('click', () => editScript(btn.dataset.edit));
                 });
             }
             
@@ -358,11 +471,32 @@
                 const script = allScripts.find(s => s.filename === filename);
                 if (!script) return;
                 
-                currentScript = script;
-                modalTitle.textContent = filename;
-                modalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(script.code)}</code></pre>`;
-                Prism.highlightAllUnder(modalBody);
-                modal.classList.add('active');
+                viewModalTitle.textContent = filename;
+                viewModalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(script.code)}</code></pre>`;
+                Prism.highlightAllUnder(viewModalBody);
+                viewModal.classList.add('active');
+                
+                document.getElementById('copyBtn').onclick = async () => {
+                    await navigator.clipboard.writeText(script.code);
+                    showToast('Copied to clipboard');
+                };
+                
+                document.getElementById('downloadBtn').onclick = () => {
+                    downloadScript(filename);
+                    viewModal.classList.remove('active');
+                };
+            }
+            
+            function editScript(filename) {
+                const script = allScripts.find(s => s.filename === filename);
+                if (!script) return;
+                
+                editingFilename = filename;
+                editModalTitle.textContent = `Edit ${filename}`;
+                scriptName.value = script.name;
+                scriptCode.value = script.code;
+                deleteBtn.style.display = 'block';
+                editModal.classList.add('active');
             }
             
             function escapeHtml(text) {
@@ -371,39 +505,96 @@
                 return div.innerHTML;
             }
             
-            modalEditBtn.addEventListener('click', () => {
-                window.open(GIST_URL + '#file-scripts-json', '_blank');
-                showToast('Opened Gist in new tab. Edit and save to update.');
+            // Add Script
+            document.getElementById('addScriptBtn').addEventListener('click', () => {
+                editingFilename = null;
+                editModalTitle.textContent = 'Add New Script';
+                scriptName.value = '';
+                scriptCode.value = '';
+                deleteBtn.style.display = 'none';
+                editModal.classList.add('active');
             });
             
-            modalCopyBtn.addEventListener('click', async () => {
-                const codeBlock = modalBody.querySelector('code');
-                if (codeBlock) {
-                    await navigator.clipboard.writeText(codeBlock.textContent);
-                    modalCopyBtn.textContent = 'Copied!';
-                    setTimeout(() => modalCopyBtn.textContent = 'Copy', 1500);
-                    showToast('Copied to clipboard');
+            // Save Script
+            document.getElementById('saveBtn').addEventListener('click', async () => {
+                const name = scriptName.value.trim();
+                const code = scriptCode.value;
+                
+                if (!name) {
+                    showToast('Name is required', true);
+                    return;
+                }
+                
+                const filename = name + '.js';
+                const now = new Date().toISOString();
+                
+                if (editingFilename) {
+                    // Update existing
+                    const index = allScripts.findIndex(s => s.filename === editingFilename);
+                    if (index !== -1) {
+                        allScripts[index].name = name;
+                        allScripts[index].filename = filename;
+                        allScripts[index].code = code;
+                        allScripts[index].updatedAt = now;
+                    }
+                } else {
+                    // Check for duplicate
+                    if (allScripts.some(s => s.filename === filename)) {
+                        showToast('Script with this name already exists', true);
+                        return;
+                    }
+                    
+                    // Add new
+                    allScripts.push({ name, filename, code, updatedAt: now });
+                }
+                
+                const saved = await saveToGist(allScripts);
+                if (saved) {
+                    editModal.classList.remove('active');
+                    renderScripts(searchInput.value);
+                    showToast(editingFilename ? 'Script updated!' : 'Script added!');
                 }
             });
             
-            modalDownloadBtn.addEventListener('click', () => {
-                if (currentScript.filename) {
-                    downloadScript(currentScript.filename);
-                    modal.classList.remove('active');
+            // Delete Script
+            deleteBtn.addEventListener('click', async () => {
+                if (!editingFilename || !confirm('Delete this script?')) return;
+                
+                allScripts = allScripts.filter(s => s.filename !== editingFilename);
+                const saved = await saveToGist(allScripts);
+                
+                if (saved) {
+                    editModal.classList.remove('active');
+                    renderScripts(searchInput.value);
+                    showToast('Script deleted');
                 }
             });
             
-            modalClose.addEventListener('click', () => modal.classList.remove('active'));
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) modal.classList.remove('active');
+            // Close modals
+            document.querySelectorAll('[data-close]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.getElementById(btn.dataset.close).classList.remove('active');
+                });
             });
+            
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) modal.classList.remove('active');
+                });
+            });
+            
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && modal.classList.contains('active')) {
-                    modal.classList.remove('active');
+                if (e.key === 'Escape') {
+                    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
                 }
             });
             
             searchInput.addEventListener('input', (e) => renderScripts(e.target.value));
+            
+            // Token warning
+            if (GITHUB_TOKEN === 'ТВОЙ_GITHUB_TOKEN') {
+                showToast('Please set your GitHub token in the code', true);
+            }
             
             renderScripts();
         })();
