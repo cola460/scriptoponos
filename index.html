@@ -126,10 +126,6 @@
             border: 1px solid #d29922;
         }
         .btn-warning:hover { background: #b88700; }
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -194,8 +190,6 @@
             justify-content: space-between;
             gap: 12px;
         }
-        .modal-footer-left { display: flex; gap: 8px; }
-        .modal-footer-right { display: flex; gap: 8px; }
         .loading-spinner {
             text-align: center;
             padding: 40px;
@@ -231,29 +225,21 @@
     <div class="container">
         <h1>scriptoponos</h1>
         <div class="subtitle">Shared Script Collection</div>
-        
         <input type="text" class="search-box" placeholder="Search scripts..." id="searchInput">
-        
         <div class="script-grid" id="scriptContainer"></div>
     </div>
     
     <div class="modal-overlay" id="modal">
         <div class="modal">
             <div class="modal-header">
-                <span class="modal-title" id="modalTitle">script.js</span>
+                <span class="modal-title" id="modalTitle"></span>
                 <button class="modal-close" id="modalClose">&times;</button>
             </div>
-            <div class="modal-body" id="modalBody">
-                <div class="loading-spinner">Loading code...</div>
-            </div>
+            <div class="modal-body" id="modalBody"></div>
             <div class="modal-footer">
-                <div class="modal-footer-left">
-                    <button class="btn btn-warning" id="modalReplaceBtn">Edit in Opengist</button>
-                </div>
-                <div class="modal-footer-right">
-                    <button class="btn btn-secondary" id="modalCopyBtn">Copy</button>
-                    <button class="btn btn-primary" id="modalDownloadBtn">Download</button>
-                </div>
+                <button class="btn btn-warning" id="modalEditBtn">Edit in Gist</button>
+                <button class="btn btn-secondary" id="modalCopyBtn">Copy</button>
+                <button class="btn btn-primary" id="modalDownloadBtn">Download</button>
             </div>
         </div>
     </div>
@@ -265,9 +251,10 @@
     
     <script>
         (function() {
-            const API_BASE = 'https://squeamish-resonate-expel.ngrok-free.dev';
-            const USERNAME = 'cola';
-            const SNIPPET_ID = '666a44dc160f444988c4484f49abbe70';
+            // ЗАМЕНИ НА ID ТВОЕГО GIST
+            const GIST_ID = '3fc3850ddd0b8962d24b87912482e370';
+            const RAW_URL = `https://gist.githubusercontent.com/cola460/${GIST_ID}/raw/scripts.json`;
+            const GIST_URL = `https://gist.github.com/cola460/${GIST_ID}`;
             
             const container = document.getElementById('scriptContainer');
             const searchInput = document.getElementById('searchInput');
@@ -279,7 +266,7 @@
             const modalClose = document.getElementById('modalClose');
             const modalCopyBtn = document.getElementById('modalCopyBtn');
             const modalDownloadBtn = document.getElementById('modalDownloadBtn');
-            const modalReplaceBtn = document.getElementById('modalReplaceBtn');
+            const modalEditBtn = document.getElementById('modalEditBtn');
             
             let currentScript = { name: '', filename: '', code: '' };
             let allScripts = [];
@@ -312,15 +299,9 @@
             
             async function fetchScripts() {
                 try {
-                    const response = await fetch(`${API_BASE}/${USERNAME}/${SNIPPET_ID}/raw`, {
-                        headers: {
-                            'ngrok-skip-browser-warning': 'true'
-                        }
-                    });
-                    
+                    const response = await fetch(RAW_URL);
                     if (!response.ok) throw new Error('Failed to fetch');
-                    const text = await response.text();
-                    return JSON.parse(text || '[]');
+                    return await response.json();
                 } catch (e) {
                     console.error('Fetch error:', e);
                     showToast('Failed to load scripts', true);
@@ -335,7 +316,7 @@
                 );
                 
                 if (filtered.length === 0) {
-                    container.innerHTML = `<div class="empty-message">Nothing found<br><span style="font-size:0.9rem;">Add scripts in Opengist</span></div>`;
+                    container.innerHTML = `<div class="empty-message">Nothing found<br><span style="font-size:0.9rem;">Add scripts in Gist</span></div>`;
                     return;
                 }
                 
@@ -390,9 +371,9 @@
                 return div.innerHTML;
             }
             
-            modalReplaceBtn.addEventListener('click', () => {
-                window.open(`${API_BASE}/${USERNAME}/${SNIPPET_ID}/edit`, '_blank');
-                showToast('Opened Opengist editor in new tab');
+            modalEditBtn.addEventListener('click', () => {
+                window.open(GIST_URL + '#file-scripts-json', '_blank');
+                showToast('Opened Gist in new tab. Edit and save to update.');
             });
             
             modalCopyBtn.addEventListener('click', async () => {
