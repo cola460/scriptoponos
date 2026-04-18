@@ -381,19 +381,28 @@
                 return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             }
             
-            async function fetchScripts() {
-                try {
-                    const response = await fetch(RAW_URL + '?t=' + Date.now(), {
-                        headers: { 'ngrok-skip-browser-warning': 'true' }
-                    });
-                    if (!response.ok) throw new Error('Failed to fetch');
-                    const text = await response.text();
-                    return JSON.parse(text || '[]');
-                } catch (e) {
-                    console.error('Fetch error:', e);
-                    return [];
-                }
+async function fetchScripts() {
+    try {
+        const response = await fetch(`${PROXY_URL}/gist/${GIST_ID}`, {
+            headers: {
+                'ngrok-skip-browser-warning': 'true',
+                'Accept': 'application/json'
             }
+        });
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+        
+        // Достаём содержимое файла scripts.json
+        const file = data.files['scripts.json'];
+        if (!file || !file.content) return [];
+        
+        return JSON.parse(file.content);
+    } catch (e) {
+        console.error('Fetch error:', e);
+        showToast('Failed to load scripts', true);
+        return [];
+    }
+}
             
             async function saveToGist(scripts) {
                 try {
