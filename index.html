@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scriptoponos — Script Collection</title>
+    <title>Scriptoponos — Shared Scripts</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <style>
         * { box-sizing: border-box; margin: 0; }
@@ -15,7 +15,6 @@
             color: #e6edf3;
         }
         .container { max-width: 950px; margin: 0 auto; }
-        
         h1 {
             font-size: 2.5rem;
             font-weight: 600;
@@ -25,7 +24,6 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
         .subtitle {
             color: #8b949e;
             margin-bottom: 30px;
@@ -33,7 +31,6 @@
             border-left: 3px solid #58a6ff;
             padding-left: 15px;
         }
-        
         .search-box {
             width: 100%;
             padding: 14px 18px;
@@ -51,13 +48,11 @@
             box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
         }
         .search-box::placeholder { color: #6e7681; }
-        
         .script-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 15px;
         }
-        
         .script-card {
             background: #161b22;
             border: 1px solid #30363d;
@@ -74,21 +69,18 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(0,0,0,0.4);
         }
-        
         .script-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             gap: 10px;
         }
-        
         .script-name {
             font-size: 1.2rem;
             font-weight: 600;
             word-break: break-word;
             color: #e6edf3;
         }
-        
         .script-date {
             font-size: 0.75rem;
             color: #6e7681;
@@ -97,13 +89,11 @@
             padding: 4px 8px;
             border-radius: 20px;
         }
-        
         .script-actions {
             display: flex;
             gap: 10px;
             margin-top: auto;
         }
-        
         .btn {
             padding: 10px 16px;
             border-radius: 8px;
@@ -118,34 +108,28 @@
             border: none;
             flex: 1;
         }
-        
         .btn-primary {
             background: #238636;
             color: white;
             border: 1px solid #2ea043;
         }
         .btn-primary:hover { background: #2ea043; }
-        
         .btn-secondary {
             background: #21262d;
             color: #e6edf3;
             border: 1px solid #30363d;
         }
         .btn-secondary:hover { background: #30363d; }
-        
         .btn-warning {
             background: #9a6700;
             color: white;
             border: 1px solid #d29922;
         }
         .btn-warning:hover { background: #b88700; }
-        
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
-        
-        /* Modal */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -158,7 +142,6 @@
             padding: 20px;
         }
         .modal-overlay.active { display: flex; }
-        
         .modal {
             background: #161b22;
             border: 1px solid #30363d;
@@ -172,7 +155,6 @@
             animation: modalIn 0.2s ease;
         }
         @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        
         .modal-header {
             display: flex;
             justify-content: space-between;
@@ -196,7 +178,6 @@
             transition: all 0.15s;
         }
         .modal-close:hover { background: #21262d; color: #f85149; }
-        
         .modal-body {
             padding: 25px;
             overflow-y: auto;
@@ -206,7 +187,6 @@
             border-radius: 10px;
             font-size: 14px;
         }
-        
         .modal-footer {
             padding: 15px 25px;
             border-top: 1px solid #30363d;
@@ -216,20 +196,17 @@
         }
         .modal-footer-left { display: flex; gap: 8px; }
         .modal-footer-right { display: flex; gap: 8px; }
-        
         .loading-spinner {
             text-align: center;
             padding: 40px;
             color: #8b949e;
         }
-        
         .empty-message {
             text-align: center;
             padding: 50px;
             color: #8b949e;
             font-size: 1.2rem;
         }
-        
         .toast {
             position: fixed;
             bottom: 25px;
@@ -253,14 +230,13 @@
 <body>
     <div class="container">
         <h1>scriptoponos</h1>
-        <div class="subtitle">Collection of useful scripts</div>
+        <div class="subtitle">Shared Script Collection</div>
         
         <input type="text" class="search-box" placeholder="Search scripts..." id="searchInput">
         
         <div class="script-grid" id="scriptContainer"></div>
     </div>
     
-    <!-- Modal for viewing/editing code -->
     <div class="modal-overlay" id="modal">
         <div class="modal">
             <div class="modal-header">
@@ -290,34 +266,16 @@
     <script>
         (function() {
             // ============================================================
-            // CONFIGURATION - PASTE YOUR GITHUB TOKEN HERE
-            // Get token: https://github.com/settings/tokens (need 'repo' scope)
-            // Token should start with 'ghp_'
+            // CONFIGURATION - CHANGE THIS TO YOUR VM'S IP
             // ============================================================
-            const GITHUB_TOKEN = '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'; // <-- PASTE YOUR TOKEN HERE
-            const REPO_OWNER = 'cola460';
-            const REPO_NAME = 'scriptoponos';
-            const BRANCH = 'main';
+            const API_URL = 'http://176.98.182.140:5000/scripts';
             
-            // List of all JS files
-            const scriptFiles = [
-                "Buttons.js",
-                "Click.js",
-                "Counter.js",
-                "Jira.js",
-                "Junk.js",
-                "Previous Convos.js",
-                "Rewrite.js",
-                "Timers.js",
-                "VIP check.js",
-                "Withdrawals.js"
-            ];
+            // ============================================================
             
             const container = document.getElementById('scriptContainer');
             const searchInput = document.getElementById('searchInput');
             const toast = document.getElementById('toast');
             
-            // Modal elements
             const modal = document.getElementById('modal');
             const modalTitle = document.getElementById('modalTitle');
             const modalBody = document.getElementById('modalBody');
@@ -326,10 +284,9 @@
             const modalDownloadBtn = document.getElementById('modalDownloadBtn');
             const modalReplaceBtn = document.getElementById('modalReplaceBtn');
             
-            let currentScript = { name: '', filename: '', rawUrl: '', url: '', sha: '' };
-            let currentCode = '';
+            let currentScript = { name: '', filename: '', code: '' };
+            let allScripts = [];
             
-            // Show toast message
             function showToast(message, isError = false) {
                 toast.textContent = message;
                 toast.classList.add('show');
@@ -340,7 +297,6 @@
                 }, 3000);
             }
             
-            // Format date
             function formatDate(dateString) {
                 if (!dateString) return 'N/A';
                 const date = new Date(dateString);
@@ -357,95 +313,36 @@
                 return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             }
             
-            // Fetch commit info for a file
-            async function fetchFileInfo(filename) {
+            async function fetchScripts() {
                 try {
-                    const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits?path=${encodeURIComponent(filename)}&per_page=1`);
-                    if (!response.ok) return null;
-                    const commits = await response.json();
-                    if (commits.length > 0) {
-                        return {
-                            date: commits[0].commit.committer.date,
-                            sha: commits[0].sha
-                        };
-                    }
+                    const response = await fetch(API_URL);
+                    if (!response.ok) throw new Error('Failed to fetch');
+                    return await response.json();
                 } catch (e) {
-                    console.warn('Failed to fetch commit info:', e);
-                }
-                return null;
-            }
-            
-            // Fetch SHA of file (needed for update)
-            async function fetchFileSha(filename) {
-                try {
-                    const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${encodeURIComponent(filename)}`);
-                    if (!response.ok) return null;
-                    const data = await response.json();
-                    return data.sha;
-                } catch (e) {
-                    return null;
+                    console.error('Fetch error:', e);
+                    showToast('Failed to load scripts', true);
+                    return [];
                 }
             }
             
-            // Update file on GitHub - FIXED VERSION
-            async function updateFile(filename, content, sha) {
-                if (!GITHUB_TOKEN) {
-                    showToast('GitHub token not configured', true);
-                    return false;
-                }
-                
+            async function updateScripts(scripts) {
                 try {
-                    // Proper Base64 encoding for Unicode
-                    const base64Content = btoa(unescape(encodeURIComponent(content)));
-                    
-                    const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${encodeURIComponent(filename)}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${GITHUB_TOKEN}`,
-                            'Accept': 'application/vnd.github.v3+json',
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            message: `Update ${filename} via Scriptoponos`,
-                            content: base64Content,
-                            sha: sha,
-                            branch: BRANCH
-                        })
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(scripts)
                     });
-                    
-                    if (!response.ok) {
-                        const error = await response.json();
-                        console.error('GitHub API error:', error);
-                        throw new Error(error.message || 'Failed to update');
-                    }
-                    
+                    if (!response.ok) throw new Error('Failed to update');
                     return true;
                 } catch (e) {
-                    console.error('Update failed:', e);
-                    showToast(e.message, true);
+                    console.error('Update error:', e);
+                    showToast('Failed to save', true);
                     return false;
                 }
             }
             
-            // Load scripts with dates
-            async function loadScriptsWithDates() {
-                const scriptsWithDates = await Promise.all(scriptFiles.map(async filename => {
-                    const info = await fetchFileInfo(filename);
-                    return {
-                        name: filename.replace(/\.js$/, ''),
-                        filename: filename,
-                        url: filename,
-                        rawUrl: `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${encodeURIComponent(filename)}`,
-                        lastUpdated: info ? formatDate(info.date) : 'N/A',
-                        commitSha: info ? info.sha : null
-                    };
-                }));
-                return scriptsWithDates;
-            }
-            
-            // Render scripts
             async function renderScripts(filterText = '') {
-                const allScripts = await loadScriptsWithDates();
+                allScripts = await fetchScripts();
                 const filtered = allScripts.filter(s => 
                     s.name.toLowerCase().includes(filterText.toLowerCase())
                 );
@@ -459,48 +356,38 @@
                     <div class="script-card">
                         <div class="script-header">
                             <span class="script-name">${script.name}</span>
-                            <span class="script-date" title="Last updated">${script.lastUpdated}</span>
+                            <span class="script-date" title="Last updated">${formatDate(script.updatedAt)}</span>
                         </div>
                         <div class="script-actions">
-                            <a href="${script.url}" download class="btn btn-primary">Download</a>
-                            <button class="btn btn-secondary" onclick="viewScript('${script.name}', '${script.rawUrl}', '${script.url}', '${script.filename}')">View</button>
+                            <button class="btn btn-primary" onclick="downloadScript('${script.name}', '${script.filename}')">Download</button>
+                            <button class="btn btn-secondary" onclick="viewScript('${script.name}', '${script.filename}')">View</button>
                         </div>
                     </div>
                 `).join('');
-                
-                window._allScripts = allScripts;
             }
             
-            // View script
-            window.viewScript = async function(name, rawUrl, url, filename) {
-                const scriptData = window._allScripts.find(s => s.filename === filename);
-                currentScript = { name, filename, rawUrl, url, sha: null };
+            window.downloadScript = function(name, filename) {
+                const script = allScripts.find(s => s.filename === filename);
+                if (!script) return;
                 
+                const blob = new Blob([script.code], { type: 'application/javascript' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+            
+            window.viewScript = function(name, filename) {
+                const script = allScripts.find(s => s.filename === filename);
+                if (!script) return;
+                
+                currentScript = script;
                 modalTitle.textContent = filename;
-                modalBody.innerHTML = '<div class="loading-spinner">Loading code...</div>';
+                modalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(script.code)}</code></pre>`;
+                Prism.highlightAllUnder(modalBody);
                 modal.classList.add('active');
-                modalDownloadBtn.href = url;
-                
-                try {
-                    const response = await fetch(rawUrl);
-                    if (!response.ok) throw new Error('Failed to load');
-                    currentCode = await response.text();
-                    
-                    const sha = await fetchFileSha(filename);
-                    currentScript.sha = sha;
-                    
-                    modalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(currentCode)}</code></pre>`;
-                    Prism.highlightAllUnder(modalBody);
-                    
-                    modalReplaceBtn.disabled = !GITHUB_TOKEN;
-                    if (!GITHUB_TOKEN) {
-                        modalReplaceBtn.title = 'GitHub token required';
-                    } else {
-                        modalReplaceBtn.title = '';
-                    }
-                } catch (error) {
-                    modalBody.innerHTML = `<div class="empty-message" style="padding:20px;">Error loading: ${error.message}</div>`;
-                }
             };
             
             function escapeHtml(text) {
@@ -509,15 +396,9 @@
                 return div.innerHTML;
             }
             
-            // Replace with clipboard
             modalReplaceBtn.addEventListener('click', async () => {
-                if (!GITHUB_TOKEN) {
-                    showToast('Please configure GitHub token in code', true);
-                    return;
-                }
-                
-                if (!currentScript.sha) {
-                    showToast('Cannot get file info. Try reopening.', true);
+                if (!currentScript.filename) {
+                    showToast('No script selected', true);
                     return;
                 }
                 
@@ -531,44 +412,38 @@
                     modalReplaceBtn.textContent = 'Saving...';
                     modalReplaceBtn.disabled = true;
                     
-                    const success = await updateFile(currentScript.filename, clipboardText, currentScript.sha);
-                    
-                    if (success) {
-                        showToast(`${currentScript.filename} updated!`);
-                        currentCode = clipboardText;
-                        modalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(currentCode)}</code></pre>`;
-                        Prism.highlightAllUnder(modalBody);
+                    const scriptIndex = allScripts.findIndex(s => s.filename === currentScript.filename);
+                    if (scriptIndex !== -1) {
+                        allScripts[scriptIndex].code = clipboardText;
+                        allScripts[scriptIndex].updatedAt = new Date().toISOString();
                         
-                        const newSha = await fetchFileSha(currentScript.filename);
-                        currentScript.sha = newSha;
-                        
-                        setTimeout(() => renderScripts(searchInput.value), 2000);
+                        const success = await updateScripts(allScripts);
+                        if (success) {
+                            currentScript.code = clipboardText;
+                            modalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(clipboardText)}</code></pre>`;
+                            Prism.highlightAllUnder(modalBody);
+                            showToast(`${currentScript.filename} updated!`);
+                            renderScripts(searchInput.value);
+                        }
                     }
                 } catch (e) {
-                    if (e.message.includes('clipboard')) {
-                        showToast('Clipboard access denied', true);
-                    } else {
-                        showToast(e.message, true);
-                    }
+                    showToast('Clipboard access denied', true);
                 } finally {
                     modalReplaceBtn.textContent = 'Replace with Clipboard';
                     modalReplaceBtn.disabled = false;
                 }
             });
             
-            // Copy code
             modalCopyBtn.addEventListener('click', async () => {
                 const codeBlock = modalBody.querySelector('code');
                 if (codeBlock) {
-                    const text = codeBlock.textContent;
-                    await navigator.clipboard.writeText(text);
+                    await navigator.clipboard.writeText(codeBlock.textContent);
                     modalCopyBtn.textContent = 'Copied!';
                     setTimeout(() => modalCopyBtn.textContent = 'Copy', 1500);
                     showToast('Copied to clipboard');
                 }
             });
             
-            // Close modal
             modalClose.addEventListener('click', () => modal.classList.remove('active'));
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) modal.classList.remove('active');
@@ -582,10 +457,6 @@
             searchInput.addEventListener('input', (e) => renderScripts(e.target.value));
             
             renderScripts();
-            
-            if (!GITHUB_TOKEN) {
-                console.warn('GitHub token not set. Replace function will not work.');
-            }
         })();
     </script>
 </body>
