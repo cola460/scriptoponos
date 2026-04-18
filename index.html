@@ -265,10 +265,10 @@
     
     <script>
         (function() {
-            // ============================================================
-            // ЗАМЕНИ НА СВОЙ IP ВМки
-            // ============================================================
-            const API_URL = 'http://176.98.182.140:5000/scripts';
+            // Используем твой ngrok URL
+            const API_BASE = 'https://squeamish-resonate-expel.ngrok-free.dev';
+            // ID сниппета (создай в Opengist сниппет с именем scripts-db)
+            const SNIPPET_ID = 'scripts-db';
             
             const container = document.getElementById('scriptContainer');
             const searchInput = document.getElementById('searchInput');
@@ -313,30 +313,22 @@
             
             async function fetchScripts() {
                 try {
-                    const response = await fetch(API_URL);
+                    // Получаем raw содержимое сниппета
+                    const response = await fetch(`${API_BASE}/api/v1/snippets/${SNIPPET_ID}/raw`);
                     if (!response.ok) throw new Error('Failed to fetch');
-                    return await response.json();
+                    const text = await response.text();
+                    return JSON.parse(text || '[]');
                 } catch (e) {
                     console.error('Fetch error:', e);
-                    showToast('Failed to load scripts', true);
+                    showToast('Failed to load scripts. Create "scripts-db" snippet in Opengist.', true);
                     return [];
                 }
             }
             
-            async function updateScripts(scripts) {
-                try {
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(scripts)
-                    });
-                    if (!response.ok) throw new Error('Failed to update');
-                    return true;
-                } catch (e) {
-                    console.error('Update error:', e);
-                    showToast('Failed to save', true);
-                    return false;
-                }
+            async function saveScripts(scripts) {
+                // Для записи нужен токен. Если его нет - показываем инструкцию.
+                showToast('To save, edit the snippet directly in Opengist', true);
+                return false;
             }
             
             async function renderScripts(filterText = '') {
@@ -346,7 +338,7 @@
                 );
                 
                 if (filtered.length === 0) {
-                    container.innerHTML = `<div class="empty-message">Nothing found<br><span style="font-size:0.9rem;">Try a different search</span></div>`;
+                    container.innerHTML = `<div class="empty-message">Nothing found<br><span style="font-size:0.9rem;">Add scripts in Opengist</span></div>`;
                     return;
                 }
                 
@@ -402,41 +394,9 @@
             }
             
             modalReplaceBtn.addEventListener('click', async () => {
-                if (!currentScript.filename) {
-                    showToast('No script selected', true);
-                    return;
-                }
-                
-                try {
-                    const clipboardText = await navigator.clipboard.readText();
-                    if (!clipboardText.trim()) {
-                        showToast('Clipboard is empty', true);
-                        return;
-                    }
-                    
-                    modalReplaceBtn.textContent = 'Saving...';
-                    modalReplaceBtn.disabled = true;
-                    
-                    const scriptIndex = allScripts.findIndex(s => s.filename === currentScript.filename);
-                    if (scriptIndex !== -1) {
-                        allScripts[scriptIndex].code = clipboardText;
-                        allScripts[scriptIndex].updatedAt = new Date().toISOString();
-                        
-                        const success = await updateScripts(allScripts);
-                        if (success) {
-                            currentScript.code = clipboardText;
-                            modalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(clipboardText)}</code></pre>`;
-                            Prism.highlightAllUnder(modalBody);
-                            showToast(`${currentScript.filename} updated!`);
-                            renderScripts(searchInput.value);
-                        }
-                    }
-                } catch (e) {
-                    showToast('Clipboard access denied', true);
-                } finally {
-                    modalReplaceBtn.textContent = 'Replace with Clipboard';
-                    modalReplaceBtn.disabled = false;
-                }
+                // Открываем Opengist для редактирования
+                window.open(`${API_BASE}/${SNIPPET_ID}/edit`, '_blank');
+                showToast('Opened Opengist editor in new tab');
             });
             
             modalCopyBtn.addEventListener('click', async () => {
