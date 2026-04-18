@@ -36,6 +36,16 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .admin-badge {
+            background: #9a6700;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
         }
         .btn-add {
             background: #238636;
@@ -98,13 +108,21 @@
             word-break: break-word;
             color: #e6edf3;
         }
-        .script-date {
+        .script-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
             font-size: 0.75rem;
+        }
+        .script-updated {
             color: #6e7681;
-            white-space: nowrap;
-            background: #21262d;
-            padding: 4px 8px;
-            border-radius: 20px;
+        }
+        .script-paid {
+            color: #3fb950;
+            font-weight: 500;
+        }
+        .script-paid.expired {
+            color: #f85149;
         }
         .script-actions {
             display: flex;
@@ -274,7 +292,10 @@
 <body>
     <div class="container">
         <div class="header-row">
-            <h1>scriptoponos</h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <h1>scriptoponos</h1>
+                <span class="admin-badge" id="adminBadge" style="display: none;">Admin Mode</span>
+            </div>
             <button class="btn-add" id="addScriptBtn">+ Add Script</button>
         </div>
         <div class="subtitle">Shared Script Collection</div>
@@ -311,6 +332,10 @@
                     <label class="form-label">Name (without .js)</label>
                     <input type="text" class="form-input" id="scriptName" placeholder="Buttons">
                 </div>
+                <div class="form-group" id="paidUntilGroup" style="display: none;">
+                    <label class="form-label">Paid Until</label>
+                    <input type="date" class="form-input" id="scriptPaidUntil">
+                </div>
                 <div class="form-group">
                     <label class="form-label">Code</label>
                     <textarea class="form-input form-textarea" id="scriptCode" placeholder="// Your JavaScript code"></textarea>
@@ -331,11 +356,21 @@
     
     <script>
         (function() {
-            // КОНФИГУРАЦИЯ - только ngrok URL и Gist ID
+            // КОНФИГУРАЦИЯ
             const PROXY_URL = 'https://squeamish-resonate-expel.ngrok-free.dev';
             const GIST_ID = '3fc3850ddd0b8962d24b87912482e370';
+            const ADMIN_SECRET = 'mysecret123'; // ← ПОМЕНЯЙ НА СВОЙ СЕКРЕТНЫЙ КЛЮЧ!
             
             const API_URL = `${PROXY_URL}/gist/${GIST_ID}`;
+            
+            // Проверка админского доступа
+            const urlParams = new URLSearchParams(window.location.search);
+            const isAdmin = urlParams.get('admin') === ADMIN_SECRET;
+            
+            if (isAdmin) {
+                document.getElementById('adminBadge').style.display = 'inline-block';
+                document.getElementById('paidUntilGroup').style.display = 'block';
+            }
             
             const container = document.getElementById('scriptContainer');
             const searchInput = document.getElementById('searchInput');
@@ -349,6 +384,7 @@
             const editModalTitle = document.getElementById('editModalTitle');
             const scriptName = document.getElementById('scriptName');
             const scriptCode = document.getElementById('scriptCode');
+            const scriptPaidUntil = document.getElementById('scriptPaidUntil');
             const deleteBtn = document.getElementById('deleteBtn');
             
             let allScripts = [];
@@ -380,28 +416,32 @@
                 return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             }
             
-async function fetchScripts() {
-    try {
-        const response = await fetch(`${PROXY_URL}/gist/${GIST_ID}`, {
-            headers: {
-                'ngrok-skip-browser-warning': 'true',
-                'Accept': 'application/json'
+            function isExpired(paidUntil) {
+                if (!paidUntil) return false;
+                return new Date(paidUntil) < new Date();
             }
-        });
-        if (!response.ok) throw new Error('Failed to fetch');
-        const data = await response.json();
-        
-        // Достаём содержимое файла scripts.json
-        const file = data.files['scripts.json'];
-        if (!file || !file.content) return [];
-        
-        return JSON.parse(file.content);
-    } catch (e) {
-        console.error('Fetch error:', e);
-        showToast('Failed to load scripts', true);
-        return [];
-    }
-}
+            
+            async function fetchScripts() {
+                try {
+                    const response = await fetch(`${PROXY_URL}/gist/${GIST_ID}`, {
+                        headers: {
+                            'ngrok-skip-browser-warning': 'true',
+                            'Accept': 'application/json'
+                        }
+                    });
+                    if (!response.ok) throw new Error('Failed to fetch');
+                    const data = await response.json();
+                    
+                    const file = data.files['scripts.json'];
+                    if (!file || !file.content) return [];
+                    
+                    return JSON.parse(file.content);
+                } catch (e) {
+                    console.error('Fetch error:', e);
+                    showToast('Failed to load scripts', true);
+                    return [];
+                }
+            }
             
             async function saveToGist(scripts) {
                 try {
@@ -429,31 +469,31 @@ async function fetchScripts() {
                 }
             }
             
-async function renderScripts(filterText = '') {
-    allScripts = await fetchScripts();
-    console.log('All scripts:', allScripts); // ← Добавь эту строку
-    
-    const filtered = allScripts.filter(s => 
-        s.name.toLowerCase().includes(filterText.toLowerCase())
-    );
-    
-    console.log('Filtered:', filtered); // ← И эту
-    
-    if (filtered.length === 0) {
-        container.innerHTML = `<div class="empty-message">No scripts found<br><span style="font-size:0.9rem;">Click "Add Script" to create one</span></div>`;
-        return;
-    }
+            async function renderScripts(filterText = '') {
+                allScripts = await fetchScripts();
+                const filtered = allScripts.filter(s => 
+                    s.name.toLowerCase().includes(filterText.toLowerCase())
+                );
                 
                 if (filtered.length === 0) {
                     container.innerHTML = `<div class="empty-message">No scripts found<br><span style="font-size:0.9rem;">Click "Add Script" to create one</span></div>`;
                     return;
                 }
                 
-                container.innerHTML = filtered.map(script => `
+                container.innerHTML = filtered.map(script => {
+                    const expired = isExpired(script.paidUntil);
+                    const paidUntilDisplay = script.paidUntil 
+                        ? new Date(script.paidUntil).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                        : 'Not set';
+                    
+                    return `
                     <div class="script-card">
                         <div class="script-header">
                             <span class="script-name">${script.name}</span>
-                            <span class="script-date" title="Last updated">${formatDate(script.updatedAt)}</span>
+                        </div>
+                        <div class="script-info">
+                            <span class="script-updated">Updated: ${formatDate(script.updatedAt)}</span>
+                            <span class="script-paid ${expired ? 'expired' : ''}">Paid until: ${paidUntilDisplay}</span>
                         </div>
                         <div class="script-actions">
                             <button class="btn btn-primary" data-download="${script.filename}">Download</button>
@@ -461,7 +501,7 @@ async function renderScripts(filterText = '') {
                             <button class="btn btn-secondary" data-edit="${script.filename}">Edit</button>
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
                 
                 document.querySelectorAll('[data-download]').forEach(btn => {
                     btn.addEventListener('click', () => downloadScript(btn.dataset.download));
@@ -515,6 +555,11 @@ async function renderScripts(filterText = '') {
                 editModalTitle.textContent = `Edit ${filename}`;
                 scriptName.value = script.name;
                 scriptCode.value = script.code;
+                
+                if (isAdmin) {
+                    scriptPaidUntil.value = script.paidUntil || '';
+                }
+                
                 deleteBtn.style.display = 'block';
                 editModal.classList.add('active');
             }
@@ -530,6 +575,9 @@ async function renderScripts(filterText = '') {
                 editModalTitle.textContent = 'Add New Script';
                 scriptName.value = '';
                 scriptCode.value = '';
+                if (isAdmin) {
+                    scriptPaidUntil.value = '';
+                }
                 deleteBtn.style.display = 'none';
                 editModal.classList.add('active');
             });
@@ -546,13 +594,25 @@ async function renderScripts(filterText = '') {
                 const filename = name + '.js';
                 const now = new Date().toISOString();
                 
+                const scriptData = {
+                    name,
+                    filename,
+                    code,
+                    updatedAt: now
+                };
+                
+                if (isAdmin) {
+                    scriptData.paidUntil = scriptPaidUntil.value || null;
+                }
+                
                 if (editingFilename) {
                     const index = allScripts.findIndex(s => s.filename === editingFilename);
                     if (index !== -1) {
-                        allScripts[index].name = name;
-                        allScripts[index].filename = filename;
-                        allScripts[index].code = code;
-                        allScripts[index].updatedAt = now;
+                        // Сохраняем существующий paidUntil если не админ
+                        if (!isAdmin && allScripts[index].paidUntil) {
+                            scriptData.paidUntil = allScripts[index].paidUntil;
+                        }
+                        allScripts[index] = { ...allScripts[index], ...scriptData };
                     }
                 } else {
                     if (allScripts.some(s => s.filename === filename)) {
@@ -560,7 +620,7 @@ async function renderScripts(filterText = '') {
                         return;
                     }
                     
-                    allScripts.push({ name, filename, code, updatedAt: now });
+                    allScripts.push(scriptData);
                 }
                 
                 const saved = await saveToGist(allScripts);
