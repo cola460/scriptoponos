@@ -331,12 +331,12 @@
     
     <script>
         (function() {
-            // КОНФИГУРАЦИЯ
-            const GITHUB_TOKEN = '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'; // Вставь свой токен
-            const GIST_ID = '3fc3850ddd0b8962d24b87912482e370'; // Вставь ID gist
+            // КОНФИГУРАЦИЯ - только ngrok URL и Gist ID
+            const PROXY_URL = 'https://ТВОЙ_NGROK_URL.ngrok-free.dev';
+            const GIST_ID = '3fc3850ddd0b8962d24b87912482e370';
             
-            const API_URL = `https://api.github.com/gists/${GIST_ID}`;
-            const RAW_URL = `https://gist.githubusercontent.com/cola460/${GIST_ID}/raw/scripts.json`;
+            const API_URL = `${PROXY_URL}/gist/${GIST_ID}`;
+            const RAW_URL = `${PROXY_URL}/raw/${GIST_ID}`;
             
             const container = document.getElementById('scriptContainer');
             const searchInput = document.getElementById('searchInput');
@@ -383,9 +383,12 @@
             
             async function fetchScripts() {
                 try {
-                    const response = await fetch(RAW_URL + '?t=' + Date.now());
+                    const response = await fetch(RAW_URL + '?t=' + Date.now(), {
+                        headers: { 'ngrok-skip-browser-warning': 'true' }
+                    });
                     if (!response.ok) throw new Error('Failed to fetch');
-                    return await response.json();
+                    const text = await response.text();
+                    return JSON.parse(text || '[]');
                 } catch (e) {
                     console.error('Fetch error:', e);
                     return [];
@@ -397,8 +400,8 @@
                     const response = await fetch(API_URL, {
                         method: 'PATCH',
                         headers: {
-                            'Authorization': `Bearer ${GITHUB_TOKEN}`,
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'ngrok-skip-browser-warning': 'true'
                         },
                         body: JSON.stringify({
                             files: {
@@ -505,7 +508,6 @@
                 return div.innerHTML;
             }
             
-            // Add Script
             document.getElementById('addScriptBtn').addEventListener('click', () => {
                 editingFilename = null;
                 editModalTitle.textContent = 'Add New Script';
@@ -515,7 +517,6 @@
                 editModal.classList.add('active');
             });
             
-            // Save Script
             document.getElementById('saveBtn').addEventListener('click', async () => {
                 const name = scriptName.value.trim();
                 const code = scriptCode.value;
@@ -529,7 +530,6 @@
                 const now = new Date().toISOString();
                 
                 if (editingFilename) {
-                    // Update existing
                     const index = allScripts.findIndex(s => s.filename === editingFilename);
                     if (index !== -1) {
                         allScripts[index].name = name;
@@ -538,13 +538,11 @@
                         allScripts[index].updatedAt = now;
                     }
                 } else {
-                    // Check for duplicate
                     if (allScripts.some(s => s.filename === filename)) {
                         showToast('Script with this name already exists', true);
                         return;
                     }
                     
-                    // Add new
                     allScripts.push({ name, filename, code, updatedAt: now });
                 }
                 
@@ -556,7 +554,6 @@
                 }
             });
             
-            // Delete Script
             deleteBtn.addEventListener('click', async () => {
                 if (!editingFilename || !confirm('Delete this script?')) return;
                 
@@ -570,7 +567,6 @@
                 }
             });
             
-            // Close modals
             document.querySelectorAll('[data-close]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     document.getElementById(btn.dataset.close).classList.remove('active');
@@ -590,11 +586,6 @@
             });
             
             searchInput.addEventListener('input', (e) => renderScripts(e.target.value));
-            
-            // Token warning
-            if (GITHUB_TOKEN === 'ТВОЙ_GITHUB_TOKEN') {
-                showToast('Please set your GitHub token in the code', true);
-            }
             
             renderScripts();
         })();
