@@ -421,11 +421,20 @@
                 }
             }
             
-            async function renderScripts(filterText = '') {
-                allScripts = await fetchScripts();
-                const filtered = allScripts.filter(s => 
-                    s.name.toLowerCase().includes(filterText.toLowerCase())
-                );
+async function renderScripts(filterText = '') {
+    allScripts = await fetchScripts();
+    console.log('All scripts:', allScripts); // ← Добавь эту строку
+    
+    const filtered = allScripts.filter(s => 
+        s.name.toLowerCase().includes(filterText.toLowerCase())
+    );
+    
+    console.log('Filtered:', filtered); // ← И эту
+    
+    if (filtered.length === 0) {
+        container.innerHTML = `<div class="empty-message">No scripts found<br><span style="font-size:0.9rem;">Click "Add Script" to create one</span></div>`;
+        return;
+    }
                 
                 if (filtered.length === 0) {
                     container.innerHTML = `<div class="empty-message">No scripts found<br><span style="font-size:0.9rem;">Click "Add Script" to create one</span></div>`;
