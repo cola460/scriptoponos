@@ -428,7 +428,7 @@
                     <input type="text" class="form-input" id="scriptName" placeholder="Buttons">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">URL Match Pattern (e.g., */admin.4rabet.com/*)</label>
+                    <label class="form-label">URL Match Pattern (e.g., https://app.chatwoot.com/*)</label>
                     <input type="text" class="form-input" id="scriptMatch" placeholder="* (all sites)">
                 </div>
                 <div class="form-group">
@@ -474,11 +474,11 @@
             // КОНФИГУРАЦИЯ
             const PROXY_URL = 'https://squeamish-resonate-expel.ngrok-free.dev';
             const GIST_ID = '3fc3850ddd0b8962d24b87912482e370';
-            const ADMIN_SECRET = 'mysecret123'; // ← ПОМЕНЯЙ НА СВОЙ СЕКРЕТНЫЙ КЛЮЧ!
+            const ADMIN_SECRET = 'mysecret123';
             
             const API_URL = `${PROXY_URL}/gist/${GIST_ID}`;
             
-            // Проверка админского доступа
+            // Проверка админского доступа (только для VPS paid until)
             const urlParams = new URLSearchParams(window.location.search);
             const isAdmin = urlParams.get('admin') === ADMIN_SECRET;
             
@@ -633,7 +633,7 @@
             if (urlMatches(currentUrl, script.match || '*')) {
                 if (executeScript(script)) loaded++;
             } else {
-                console.log(\`[Scriptoponos] Skipped: \${script.name}\`);
+                console.log(\`[Scriptoponos] Skipped (URL mismatch): \${script.name}\`);
                 skipped++;
             }
         }
@@ -898,6 +898,9 @@
                 if (editingFilename) {
                     const index = allScripts.findIndex(s => s.filename === editingFilename);
                     if (index !== -1) {
+                        if (!match && allScripts[index].match) {
+                            scriptData.match = allScripts[index].match;
+                        }
                         allScripts[index] = { ...allScripts[index], ...scriptData };
                     }
                 } else {
