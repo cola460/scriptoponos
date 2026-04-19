@@ -51,11 +51,6 @@
             font-weight: 500;
         }
         
-        .header-buttons {
-            display: flex;
-            gap: 10px;
-        }
-        
         .btn-add {
             background: #238636;
             color: white;
@@ -68,19 +63,6 @@
             line-height: 1;
         }
         .btn-add:hover { background: #2ea043; }
-        
-        .btn-loader {
-            background: #1f2a3f;
-            color: #58a6ff;
-            border: 1px solid #30363d;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 500;
-            cursor: pointer;
-            font-size: 1rem;
-            line-height: 1;
-        }
-        .btn-loader:hover { background: #2d3a4f; }
         
         .subtitle {
             color: #8b949e;
@@ -125,14 +107,6 @@
         }
         .btn-small:hover {
             background: #3d444d;
-        }
-        
-        .section-title {
-            color: #e6edf3;
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-            margin-top: 10px;
         }
         
         .master-loader-card {
@@ -225,10 +199,6 @@
         }
         .script-updated {
             color: #6e7681;
-        }
-        .script-match {
-            color: #58a6ff;
-            font-family: monospace;
         }
         .script-actions {
             display: flex;
@@ -402,10 +372,7 @@
                 <h1>scriptoponos</h1>
                 <span class="admin-badge" id="adminBadge" style="display: none;">Admin Mode</span>
             </div>
-            <div class="header-buttons">
-                <button class="btn-loader" id="copyLoaderBtn">📋 Copy Loader</button>
-                <button class="btn-add" id="addScriptBtn">+ Add Script</button>
-            </div>
+            <button class="btn-add" id="addScriptBtn">+ Add Script</button>
         </div>
         <div class="subtitle">Shared Script Collection</div>
         
@@ -829,7 +796,6 @@
                         </div>
                         <div class="script-info">
                             <span class="script-updated">Updated: ${formatDate(script.updatedAt)}</span>
-                            ${script.match ? `<span class="script-match">Match: ${script.match}</span>` : ''}
                         </div>
                         <div class="script-actions">
                             <button class="btn btn-primary" data-download="${script.filename}">Download</button>
@@ -985,11 +951,6 @@
             });
             
             // Master Loader actions
-            document.getElementById('copyLoaderBtn').addEventListener('click', async () => {
-                await navigator.clipboard.writeText(MASTER_LOADER_CODE);
-                showToast('Master Loader code copied to clipboard!');
-            });
-            
             document.getElementById('viewLoaderBtn').addEventListener('click', () => {
                 viewModalTitle.textContent = 'Scriptoponos Loader.user.js';
                 viewModalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(MASTER_LOADER_CODE)}</code></pre>`;
