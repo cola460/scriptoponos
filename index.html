@@ -51,6 +51,11 @@
             font-weight: 500;
         }
         
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
         .btn-add {
             background: #238636;
             color: white;
@@ -63,6 +68,19 @@
             line-height: 1;
         }
         .btn-add:hover { background: #2ea043; }
+        
+        .btn-loader {
+            background: #1f2a3f;
+            color: #58a6ff;
+            border: 1px solid #30363d;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+        }
+        .btn-loader:hover { background: #2d3a4f; }
         
         .subtitle {
             color: #8b949e;
@@ -109,6 +127,63 @@
             background: #3d444d;
         }
         
+        .section-title {
+            color: #e6edf3;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            margin-top: 10px;
+        }
+        
+        .master-loader-card {
+            background: linear-gradient(135deg, #1a2333 0%, #161b22 100%);
+            border: 1.5px solid #58a6ff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .master-loader-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .master-loader-icon {
+            background: #58a6ff;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0d1117;
+        }
+        
+        .master-loader-text h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #e6edf3;
+            margin-bottom: 4px;
+        }
+        
+        .master-loader-text p {
+            font-size: 0.85rem;
+            color: #8b949e;
+        }
+        
+        .master-loader-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
         .script-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -150,6 +225,10 @@
         }
         .script-updated {
             color: #6e7681;
+        }
+        .script-match {
+            color: #58a6ff;
+            font-family: monospace;
         }
         .script-actions {
             display: flex;
@@ -323,7 +402,10 @@
                 <h1>scriptoponos</h1>
                 <span class="admin-badge" id="adminBadge" style="display: none;">Admin Mode</span>
             </div>
-            <button class="btn-add" id="addScriptBtn">+ Add Script</button>
+            <div class="header-buttons">
+                <button class="btn-loader" id="copyLoaderBtn">📋 Copy Loader</button>
+                <button class="btn-add" id="addScriptBtn">+ Add Script</button>
+            </div>
         </div>
         <div class="subtitle">Shared Script Collection</div>
         
@@ -331,6 +413,21 @@
             <span class="paid-label">VPS paid until:</span>
             <span class="paid-value" id="globalPaidUntil">Loading...</span>
             <button class="btn-small" id="editPaidUntilBtn" style="display: none;">Edit</button>
+        </div>
+        
+        <!-- Master Loader Card -->
+        <div class="master-loader-card">
+            <div class="master-loader-info">
+                <div class="master-loader-icon">⚡</div>
+                <div class="master-loader-text">
+                    <h3>Violetmonkey Master Loader</h3>
+                    <p>One script to load them all. Install this in Violetmonkey.</p>
+                </div>
+            </div>
+            <div class="master-loader-actions">
+                <button class="btn btn-secondary" id="viewLoaderBtn">View</button>
+                <button class="btn btn-primary" id="downloadLoaderBtn">Download</button>
+            </div>
         </div>
         
         <div class="script-grid" id="scriptContainer"></div>
@@ -364,6 +461,10 @@
                     <input type="text" class="form-input" id="scriptName" placeholder="Buttons">
                 </div>
                 <div class="form-group">
+                    <label class="form-label">URL Match Pattern (e.g., */admin.4rabet.com/*)</label>
+                    <input type="text" class="form-input" id="scriptMatch" placeholder="* (all sites)">
+                </div>
+                <div class="form-group">
                     <label class="form-label">Code</label>
                     <textarea class="form-input form-textarea" id="scriptCode" placeholder="// Your JavaScript code"></textarea>
                 </div>
@@ -375,7 +476,7 @@
             </div>
         </div>
     </div>
-
+    
     <!-- Paid Until Edit Modal -->
     <div class="modal-overlay" id="paidModal">
         <div class="modal">
@@ -429,6 +530,7 @@
             const editModal = document.getElementById('editModal');
             const editModalTitle = document.getElementById('editModalTitle');
             const scriptName = document.getElementById('scriptName');
+            const scriptMatch = document.getElementById('scriptMatch');
             const scriptCode = document.getElementById('scriptCode');
             const deleteBtn = document.getElementById('deleteBtn');
             
@@ -438,6 +540,141 @@
             let allScripts = [];
             let editingFilename = null;
             let globalPaidUntil = null;
+            
+            // Код Master Loader
+            const MASTER_LOADER_CODE = `// ==UserScript==
+// @name            Scriptoponos Loader
+// @namespace       scriptoponos
+// @version         1.0.2
+// @description     Auto-load all scripts from Scriptoponos
+// @author          cola460
+// @match           *://*/*
+// @grant           GM_addStyle
+// @grant           GM_getValue
+// @grant           GM_setValue
+// @grant           GM_deleteValue
+// @grant           GM_listValues
+// @grant           GM_xmlhttpRequest
+// @grant           GM_notification
+// @grant           GM_openInTab
+// @grant           GM_setClipboard
+// @grant           unsafeWindow
+// ==/UserScript==
+
+(function() {
+    'use strict';
+    
+    const PROXY_URL = '${PROXY_URL}';
+    const GIST_ID = '${GIST_ID}';
+    const CACHE_KEY = 'scriptoponos_scripts_cache';
+    const CACHE_TIME = 5 * 60 * 1000;
+    
+    const gmAPI = {
+        GM_addStyle: (css) => GM_addStyle(css),
+        GM_getValue: (key, defaultValue) => GM_getValue(key, defaultValue),
+        GM_setValue: (key, value) => GM_setValue(key, value),
+        GM_deleteValue: (key) => GM_deleteValue(key),
+        GM_listValues: () => GM_listValues(),
+        GM_xmlhttpRequest: (details) => GM_xmlhttpRequest(details),
+        GM_notification: (details) => GM_notification(details),
+        GM_openInTab: (url, options) => GM_openInTab(url, options),
+        GM_setClipboard: (text, type) => GM_setClipboard(text, type)
+    };
+    
+    Object.assign(unsafeWindow, gmAPI);
+    
+    function urlMatches(url, pattern) {
+        if (!pattern || pattern === '*') return true;
+        const regexPattern = pattern.replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&').replace(/\\\\\\*/g, '.*').replace(/\\\\\\?/g, '.');
+        const regex = new RegExp('^' + regexPattern + '$', 'i');
+        return regex.test(url);
+    }
+    
+    async function fetchScripts() {
+        try {
+            const response = await fetch(\`\${PROXY_URL}/gist/\${GIST_ID}\`, {
+                headers: { 'ngrok-skip-browser-warning': 'true' }
+            });
+            const data = await response.json();
+            const file = data.files['scripts.json'];
+            if (!file || !file.content) return [];
+            
+            const scripts = JSON.parse(file.content);
+            GM_setValue(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), scripts }));
+            return scripts;
+        } catch (e) {
+            console.error('[Scriptoponos] Failed to fetch scripts:', e);
+            const cached = GM_getValue(CACHE_KEY, '');
+            if (cached) {
+                try {
+                    const data = JSON.parse(cached);
+                    if (Date.now() - data.timestamp < CACHE_TIME * 10) return data.scripts;
+                } catch (ex) {}
+            }
+            return [];
+        }
+    }
+    
+    function executeScript(script) {
+        try {
+            const wrappedCode = \`
+                (function(GM_addStyle, GM_getValue, GM_setValue, GM_deleteValue, GM_listValues, GM_xmlhttpRequest, GM_notification, GM_openInTab, GM_setClipboard) {
+                    \${script.code}
+                })(
+                    window.GM_addStyle,
+                    window.GM_getValue,
+                    window.GM_setValue,
+                    window.GM_deleteValue,
+                    window.GM_listValues,
+                    window.GM_xmlhttpRequest,
+                    window.GM_notification,
+                    window.GM_openInTab,
+                    window.GM_setClipboard
+                );
+            \`;
+            const func = new Function(wrappedCode);
+            func();
+            console.log(\`[Scriptoponos] Loaded: \${script.name}\`);
+            return true;
+        } catch (e) {
+            console.error(\`[Scriptoponos] Failed to load \${script.name}:\`, e);
+            return false;
+        }
+    }
+    
+    async function loadScripts() {
+        const currentUrl = window.location.href;
+        console.log(\`[Scriptoponos] Current URL: \${currentUrl}\`);
+        
+        let scripts = [];
+        const cached = GM_getValue(CACHE_KEY, '');
+        if (cached) {
+            try {
+                const data = JSON.parse(cached);
+                if (Date.now() - data.timestamp < CACHE_TIME) scripts = data.scripts;
+            } catch (e) {}
+        }
+        
+        if (scripts.length === 0) {
+            scripts = await fetchScripts();
+        } else {
+            fetchScripts().catch(() => {});
+        }
+        
+        let loaded = 0, skipped = 0;
+        for (const script of scripts) {
+            if (urlMatches(currentUrl, script.match || '*')) {
+                if (executeScript(script)) loaded++;
+            } else {
+                console.log(\`[Scriptoponos] Skipped: \${script.name}\`);
+                skipped++;
+            }
+        }
+        console.log(\`[Scriptoponos] Done! Loaded: \${loaded}, Skipped: \${skipped}\`);
+    }
+    
+    setTimeout(loadScripts, 100);
+})();`;
             
             function showToast(message, isError = false) {
                 toast.textContent = message;
@@ -592,6 +829,7 @@
                         </div>
                         <div class="script-info">
                             <span class="script-updated">Updated: ${formatDate(script.updatedAt)}</span>
+                            ${script.match ? `<span class="script-match">Match: ${script.match}</span>` : ''}
                         </div>
                         <div class="script-actions">
                             <button class="btn btn-primary" data-download="${script.filename}">Download</button>
@@ -652,6 +890,7 @@
                 editingFilename = filename;
                 editModalTitle.textContent = `Edit ${filename}`;
                 scriptName.value = script.name;
+                scriptMatch.value = script.match || '';
                 scriptCode.value = script.code;
                 deleteBtn.style.display = 'block';
                 editModal.classList.add('active');
@@ -668,6 +907,7 @@
                 editingFilename = null;
                 editModalTitle.textContent = 'Add New Script';
                 scriptName.value = '';
+                scriptMatch.value = '';
                 scriptCode.value = '';
                 deleteBtn.style.display = 'none';
                 editModal.classList.add('active');
@@ -675,6 +915,7 @@
             
             document.getElementById('saveBtn').addEventListener('click', async () => {
                 const name = scriptName.value.trim();
+                const match = scriptMatch.value.trim();
                 const code = scriptCode.value;
                 
                 if (!name) {
@@ -685,24 +926,20 @@
                 const filename = name + '.js';
                 const now = new Date().toISOString();
                 
+                const scriptData = { name, filename, code, updatedAt: now };
+                if (match) scriptData.match = match;
+                
                 if (editingFilename) {
                     const index = allScripts.findIndex(s => s.filename === editingFilename);
                     if (index !== -1) {
-                        allScripts[index] = { 
-                            ...allScripts[index], 
-                            name, 
-                            filename, 
-                            code, 
-                            updatedAt: now 
-                        };
+                        allScripts[index] = { ...allScripts[index], ...scriptData };
                     }
                 } else {
                     if (allScripts.some(s => s.filename === filename)) {
                         showToast('Script with this name already exists', true);
                         return;
                     }
-                    
-                    allScripts.push({ name, filename, code, updatedAt: now });
+                    allScripts.push(scriptData);
                 }
                 
                 const saved = await saveToGist(allScripts);
@@ -745,6 +982,45 @@
                     paidModal.classList.remove('active');
                     showToast('VPS paid until date updated!');
                 }
+            });
+            
+            // Master Loader actions
+            document.getElementById('copyLoaderBtn').addEventListener('click', async () => {
+                await navigator.clipboard.writeText(MASTER_LOADER_CODE);
+                showToast('Master Loader code copied to clipboard!');
+            });
+            
+            document.getElementById('viewLoaderBtn').addEventListener('click', () => {
+                viewModalTitle.textContent = 'Scriptoponos Loader.user.js';
+                viewModalBody.innerHTML = `<pre><code class="language-javascript">${escapeHtml(MASTER_LOADER_CODE)}</code></pre>`;
+                Prism.highlightAllUnder(viewModalBody);
+                viewModal.classList.add('active');
+                
+                document.getElementById('copyBtn').onclick = async () => {
+                    await navigator.clipboard.writeText(MASTER_LOADER_CODE);
+                    showToast('Copied to clipboard');
+                };
+                
+                document.getElementById('downloadBtn').onclick = () => {
+                    const blob = new Blob([MASTER_LOADER_CODE], { type: 'application/javascript' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'Scriptoponos Loader.user.js';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                };
+            });
+            
+            document.getElementById('downloadLoaderBtn').addEventListener('click', () => {
+                const blob = new Blob([MASTER_LOADER_CODE], { type: 'application/javascript' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'Scriptoponos Loader.user.js';
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('Master Loader downloaded!');
             });
             
             document.querySelectorAll('[data-close]').forEach(btn => {
