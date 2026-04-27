@@ -710,10 +710,11 @@
                 try {
                     const response = await fetch(API_URL, {
                         method: 'PATCH',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'ngrok-skip-browser-warning': 'true'
-                        },
+headers: {
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
+    'bypass-tunnel-reminder': 'true'
+},
                         body: JSON.stringify({
                             files: {
                                 'paid.json': {
@@ -761,10 +762,11 @@ async function fetchScripts() {
                 try {
                     const response = await fetch(API_URL, {
                         method: 'PATCH',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'ngrok-skip-browser-warning': 'true'
-                        },
+headers: {
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
+    'bypass-tunnel-reminder': 'true'
+},
                         body: JSON.stringify({
                             files: {
                                 'scripts.json': {
